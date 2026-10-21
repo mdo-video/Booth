@@ -1,5 +1,11 @@
 package it.mdo.booth.tablet
 
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.res.painterResource
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.graphics.ImageBitmap
@@ -46,14 +52,23 @@ fun StatusBadge(info: JSONObject, modifier: Modifier = Modifier) {
     val warn = lowBat || lowSpace
     Column(
         modifier.clip(RoundedCornerShape(28.dp))
-            .background(if (warn) Color(0xEEB71C1C) else Color(0x80000000))
+            .background(if (warn) Color(0xEEB71C1C) else UiDark)
             .padding(horizontal = 20.dp, vertical = 10.dp)
     ) {
-        val battery = if (bat >= 0) "🔋 $bat%" + (if (charging) " ⚡" else "") else ""
-        val space = if (freeMb >= 0) "💾 " + "%.1f".format(freeMb / 1024.0) + " GB" else ""
-        Text("$battery   $space".trim(), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-        if (lowBat) Text("Batteria del telefono bassa!", color = Color.White, fontSize = 14.sp)
-        if (lowSpace) Text("Spazio del telefono quasi finito!", color = Color.White, fontSize = 14.sp)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (bat >= 0) {
+                Icon(painterResource(R.drawable.ic_battery), null, tint = Color.White, modifier = Modifier.size(26.dp))
+                Text("$bat%", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                if (charging) Icon(painterResource(R.drawable.ic_bolt), null, tint = Color(0xFFFFD54A), modifier = Modifier.size(20.dp))
+            }
+            if (bat >= 0 && freeMb >= 0) Box(Modifier.width(1.dp).height(24.dp).background(Color(0x66FFFFFF)))
+            if (freeMb >= 0) {
+                Icon(painterResource(R.drawable.ic_sd), null, tint = Color.White, modifier = Modifier.size(26.dp))
+                Text("%.1f GB".format(freeMb / 1024.0), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+        if (lowBat) Text("Batteria del telefono bassa!", color = Color.White, fontSize = 15.sp)
+        if (lowSpace) Text("Spazio del telefono quasi finito!", color = Color.White, fontSize = 15.sp)
     }
 }
 
@@ -70,10 +85,11 @@ fun LivePreview(client: BoothClient, local: LocalSettings, overlay: ImageBitmap?
         val (top, bottom, side) = when (local.borderMode) {
             0 -> Triple(0.dp, 0.dp, 0.dp)
             1 -> Triple(24.dp, 24.dp, 24.dp)
-            else -> Triple(96.dp, 260.dp, 0.dp)
+            else -> Triple(96.dp, 232.dp, 0.dp)
         }
         Box(Modifier.fillMaxSize().padding(start = side, end = side, top = top, bottom = bottom), contentAlignment = Alignment.Center) {
-            Box(Modifier.aspectRatio(ar)) {
+            val shape = RoundedCornerShape(if (local.borderMode == 0) 0.dp else 20.dp)
+            Box(Modifier.aspectRatio(ar).then(if (local.borderMode == 0) Modifier else Modifier.shadow(12.dp, shape)).clip(shape)) {
                 Image(
                     bitmap = img,
                     contentDescription = null,

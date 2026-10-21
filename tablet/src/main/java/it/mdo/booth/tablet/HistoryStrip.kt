@@ -53,10 +53,13 @@ fun HistoryStrip(
     }
     LazyColumn(
         state = listState,
-        modifier = modifier.width(120.dp).clip(RoundedCornerShape(16.dp)).background(Color(0x99000000)),
-        contentPadding = PaddingValues(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier.width(128.dp),
+        contentPadding = PaddingValues(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        item(key = "titolo") {
+            Text("ULTIMI", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
+        }
         items(list, key = { it.name }) { item ->
             HistoryThumb(client, item, item.name == selected) { onSelect(item) }
         }
@@ -67,11 +70,11 @@ fun HistoryStrip(
 private fun HistoryThumb(client: BoothClient, item: HistoryItem, selected: Boolean, onClick: () -> Unit) {
     var bmp by remember(item.name) { mutableStateOf<Bitmap?>(null) }
     LaunchedEffect(item.name) { bmp = client.thumb(item.name) }
-    val shape = RoundedCornerShape(10.dp)
+    val shape = RoundedCornerShape(12.dp)
     Box(
-        Modifier.fillMaxWidth().aspectRatio(1f).clip(shape)
+        Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(shape)
             .background(Color(0xFF2B2F36))
-            .border(if (selected) 3.dp else 1.dp, if (selected) Color(0xFFFFC107) else Color(0xFF5F6670), shape)
+            .border(if (selected) 3.dp else 2.dp, if (selected) Color(0xFFFFD54A) else Color.White.copy(alpha = 0.85f), shape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.BottomCenter,
     ) {
@@ -79,7 +82,7 @@ private fun HistoryThumb(client: BoothClient, item: HistoryItem, selected: Boole
             Image(
                 bitmap = it.asImageBitmap(),
                 contentDescription = null,
-                modifier = Modifier.fillMaxWidth().aspectRatio(1f),
+                modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
                 contentScale = ContentScale.Crop,
             )
         }

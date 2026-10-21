@@ -214,7 +214,7 @@ fun BoothScreen(
     val onBorder = if (borderBg.luminance() > 0.5f) Color.Black else Color.White
     val wide = local.borderMode == 2            // bordo largo: i tasti stanno fuori dall'immagine
     val zoneTop = if (wide) 96.dp else 96.dp
-    val zoneBottom = if (wide) 260.dp else 96.dp
+    val zoneBottom = if (wide) 232.dp else 96.dp
     Box(Modifier.fillMaxSize().background(borderBg)) {
         LivePreview(client, local, frameOverlay)
         if (!connected) {
@@ -247,15 +247,15 @@ fun BoothScreen(
         if (!recording && !starting && !processing && countdown == 0) {
             Box(
                 Modifier.align(Alignment.TopEnd).padding(20.dp).size(56.dp).clip(CircleShape)
-                    .background(Color(0x66000000))
+                    .background(UiDark)
                     .clickable { showLegend = false; showSettings = true; client.send("INFO?") },
                 contentAlignment = Alignment.Center,
             ) {
-                Text("⚙", color = Color.White, fontSize = 28.sp)
+                androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(R.drawable.ic_gear), null, tint = Color.White, modifier = Modifier.size(28.dp))
             }
             Box(
                 Modifier.align(Alignment.TopEnd).padding(top = 20.dp, end = 92.dp).size(56.dp).clip(CircleShape)
-                    .background(Color(0x66000000))
+                    .background(UiDark)
                     .clickable { qr = QrRequest(null) },
                 contentAlignment = Alignment.Center,
             ) {
@@ -341,17 +341,17 @@ fun BoothScreen(
                 }
                 val enabled = connected && !starting
                 if (!recording) {
-                    Box(Modifier.size(180.dp).border(4.dp, Color.White.copy(alpha = 0.9f), CircleShape))
+                    Box(Modifier.size(168.dp).border(4.dp, Color.White.copy(alpha = 0.9f), CircleShape))
                 }
                 Box(
-                    Modifier.size(if (recording) 160.dp else 148.dp).clip(CircleShape)
+                    Modifier.size(if (recording) 160.dp else 136.dp).clip(CircleShape)
                         .background(if (enabled) Color(0xFFFF2D3D) else Color.Gray)
                         .clickable(enabled = enabled) {
                             if (recording) client.send("STOP") else { shotKind = "video"; starting = true }
                         },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(if (recording) "STOP" else "REC", color = Color.White, fontSize = 36.sp, fontWeight = FontWeight.Bold)
+                    Text(if (recording) "STOP" else "REC", color = Color.White, fontSize = if (recording) 36.sp else 32.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -359,17 +359,18 @@ fun BoothScreen(
         // tasto FOTO
         if (!hasTake && !processing && connected && !recording && !starting && countdown == 0 && info?.optBoolean("hasPhoto") == true) {
             Column(
-                Modifier.align(Alignment.BottomCenter).offset(x = 190.dp).padding(bottom = 50.dp),
+                Modifier.align(Alignment.BottomCenter).offset(x = 190.dp).padding(bottom = 56.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Box(
-                    Modifier.size(88.dp).clip(CircleShape).background(Color.White)
+                    Modifier.size(84.dp).clip(CircleShape).background(Color.White)
                         .clickable { shotKind = "photo"; starting = true },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("📷", fontSize = 40.sp)
+                    androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(R.drawable.ic_camera), null,
+                        tint = Color(0xFF3A0A33), modifier = Modifier.size(38.dp))
                 }
-                Text("FOTO", color = onBorder, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                Text("FOTO", color = onBorder, fontSize = 13.sp, letterSpacing = 1.sp, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(top = 6.dp))
             }
         }
@@ -416,7 +417,7 @@ fun BoothScreen(
             Text(
                 local.welcome,
                 color = if (wide) onBorder else Color.White,
-                fontSize = 30.sp,
+                fontSize = if (wide) 28.sp else 30.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 modifier = if (wide) {

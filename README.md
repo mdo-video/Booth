@@ -91,3 +91,8 @@ La cornice PNG resta agganciata all'immagine. Serve aggiornare solo l'app Booth 
 Con il bordo *Largo* tutto sta fuori dall'immagine: messaggio d'attesa nella fascia in alto, REC con anello bianco e FOTO bianco in basso,
 tasti a destra più grandi con scritta (TORCIA, FLASH, CORNICE, AUTO/FISSO, giallo = attivo), storico a sinistra.
 Batteria e spazio più grandi (rosso quando stanno finendo). Nuovo preset colore **Fucsia**. Solo app Booth (tablet).
+
+## Novità 1.15 — interfaccia identica al mockup
+Font Poppins incluso nell'app, icone disegnate (batteria, scheda, torcia, flash, cornice, lucchetto, fotocamera, ingranaggio),
+miniature dello storico 16:9 con bordo bianco e titolo ULTIMI, video con angoli arrotondati e ombra, tasti scuri viola semitrasparenti.
+Il bordo Fucsia è il colore predefinito per le nuove installazioni. Solo app Booth (tablet).

@@ -42,7 +42,7 @@ class LocalSettings(private val prefs: SharedPreferences) {
     /** bordo attorno all'anteprima: 0 = pieno schermo, 1 = sottile, 2 = largo (i tasti stanno nel bordo) */
     var borderMode by mutableIntStateOf(prefs.getInt("borderMode", 2))
     /** colore del bordo, ARGB */
-    var borderColor by mutableIntStateOf(prefs.getInt("borderColor", 0xFF000000.toInt()))
+    var borderColor by mutableIntStateOf(prefs.getInt("borderColor", 0xFFD61F9E.toInt()))
 
     fun save() {
         prefs.edit()
@@ -135,7 +135,9 @@ class MainActivity : ComponentActivity() {
         if (need.isEmpty()) startDash() else askPerms.launch(need.toTypedArray())
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
+                androidx.compose.material3.ProvideTextStyle(androidx.compose.ui.text.TextStyle(fontFamily = Poppins)) {
                 BoothScreen(client, local, frames, onKiosk = ::setKiosk, onShare = ::shareTake, onPickFrame = ::chooseFrame, dashCfg = dashCfg)
+                }
             }
         }
         if (local.kiosk) setKiosk(true)

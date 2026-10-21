@@ -1,5 +1,7 @@
 package it.mdo.booth.tablet
 
+import androidx.compose.ui.res.painterResource
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,7 +29,7 @@ import org.json.JSONObject
 import kotlin.math.abs
 
 private val OnColor = Color(0xFFFFD54A)
-private val OffColor = Color(0x99000000)
+private val OffColor = UiDark
 
 /** Colonna di tasti grandi: torcia (ON/OFF) e focali. Il tasto acceso è giallo pieno. */
 @Composable
@@ -38,29 +40,29 @@ fun CameraControls(client: BoothClient, info: JSONObject, modifier: Modifier = M
     val sel = shown.minByOrNull { abs(it - cur) }
     Column(
         modifier,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         if (info.optBoolean("hasTorch")) {
             val on = info.optBoolean("torch")
-            ControlButton("🔦", "TORCIA", on) {
+            ControlButton(R.drawable.ic_torch, "TORCIA", on) {
                 client.set(JSONObject().put("torch", !on))
             }
         }
         if (info.optBoolean("hasFlash")) {
             val f = info.optBoolean("flash")
-            ControlButton("⚡", "FLASH", f) {
+            ControlButton(R.drawable.ic_bolt, "FLASH", f) {
                 client.set(JSONObject().put("flash", !f))
             }
         }
         if (info.optBoolean("hasFrame")) {
             val fr = info.optBoolean("frame")
-            ControlButton("🖼", "CORNICE", fr) {
+            ControlButton(R.drawable.ic_frame, "CORNICE", fr) {
                 client.set(JSONObject().put("frame", !fr))
             }
         }
         val lockOn = info.optBoolean("lock")
-        ControlButton(if (lockOn) "🔒" else "🔓", if (lockOn) "FISSO" else "AUTO", lockOn) {
+        ControlButton(if (lockOn) R.drawable.ic_lock else R.drawable.ic_lock_open, if (lockOn) "FISSO" else "AUTO", lockOn) {
             client.set(JSONObject().put("lock", !lockOn))
         }
     }
@@ -70,24 +72,25 @@ private fun lensLabel(z: Double): String =
     if (z == z.toInt().toDouble()) "${z.toInt()}x" else "${z}x"
 
 @Composable
-private fun ControlButton(icon: String, label: String, active: Boolean, onClick: () -> Unit) {
+private fun ControlButton(iconRes: Int, label: String, active: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(24.dp)
+    val fg = if (active) Color(0xFF2B1B00) else Color.White
     Column(
-        Modifier.size(width = 88.dp, height = 96.dp).clip(shape)
+        Modifier.size(width = 96.dp, height = 104.dp).clip(shape)
             .background(if (active) OnColor else OffColor)
-            .border(2.dp, if (active) Color.White else Color(0x55FFFFFF), shape)
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(icon, fontSize = 32.sp, textAlign = TextAlign.Center)
+        Icon(painterResource(iconRes), null, tint = fg, modifier = Modifier.size(34.dp))
         Text(
             label,
-            color = if (active) Color(0xFF2B1B00) else Color.White,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
+            color = fg,
+            fontSize = 13.sp,
+            letterSpacing = 0.8.sp,
+            fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 4.dp),
+            modifier = Modifier.padding(top = 8.dp),
         )
     }
 }
