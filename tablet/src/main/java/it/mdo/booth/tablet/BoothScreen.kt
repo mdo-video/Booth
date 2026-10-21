@@ -12,6 +12,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.widthIn
 import org.json.JSONObject
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -306,7 +307,9 @@ fun BoothScreen(
                     }
                 }
                 Column(
-                    Modifier.align(Alignment.TopEnd).padding(top = 90.dp, end = 20.dp)
+                    // a sinistra della colonna di tasti (96dp + 24dp di margine + 16dp di respiro) per non coprirli
+                    Modifier.align(Alignment.TopEnd).padding(top = 90.dp, end = 136.dp)
+                        .widthIn(max = 440.dp)
                         .clip(RoundedCornerShape(18.dp)).background(Color(0xE61B1D22)).padding(20.dp),
                     verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
                 ) {
