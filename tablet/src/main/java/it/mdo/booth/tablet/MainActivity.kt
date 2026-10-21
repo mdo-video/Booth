@@ -39,6 +39,10 @@ class LocalSettings(private val prefs: SharedPreferences) {
     /** telecomando Bluetooth associato (descrittore del dispositivo di input + nome da mostrare) */
     var remoteDevice by mutableStateOf(prefs.getString("remoteDevice", "") ?: "")
     var remoteName by mutableStateOf(prefs.getString("remoteName", "") ?: "")
+    /** bordo attorno all'anteprima: 0 = pieno schermo, 1 = sottile, 2 = largo (i tasti stanno nel bordo) */
+    var borderMode by mutableIntStateOf(prefs.getInt("borderMode", 2))
+    /** colore del bordo, ARGB */
+    var borderColor by mutableIntStateOf(prefs.getInt("borderColor", 0xFF000000.toInt()))
 
     fun save() {
         prefs.edit()
@@ -53,6 +57,8 @@ class LocalSettings(private val prefs: SharedPreferences) {
             .putBoolean("frameDefaultDone", frameDefaultDone)
             .putString("remoteDevice", remoteDevice)
             .putString("remoteName", remoteName)
+            .putInt("borderMode", borderMode)
+            .putInt("borderColor", borderColor)
             .apply()
     }
 }

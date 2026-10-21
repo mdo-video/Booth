@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import android.graphics.BitmapFactory
@@ -209,16 +210,21 @@ fun BoothScreen(
     val onRemote by rememberUpdatedState(remoteHandler)
     LaunchedEffect(Unit) { RemoteBus.gestures.collect { onRemote(it) } }
 
-    Box(Modifier.fillMaxSize().background(Color.Black)) {
+    val borderBg = Color(local.borderColor)
+    val onBorder = if (borderBg.luminance() > 0.5f) Color.Black else Color.White
+    val wide = local.borderMode == 2            // bordo largo: i tasti stanno fuori dall'immagine
+    val zoneTop = if (wide) 96.dp else 96.dp
+    val zoneBottom = if (wide) 260.dp else 96.dp
+    Box(Modifier.fillMaxSize().background(borderBg)) {
         LivePreview(client, local, frameOverlay)
         if (!connected) {
-            Text("Cerco il telefono…", color = Color.White, fontSize = 28.sp, modifier = Modifier.align(Alignment.Center))
+            Text("Cerco il telefono…", color = onBorder, fontSize = 28.sp, modifier = Modifier.align(Alignment.Center))
         }
         if (countdown > 0) {
             Text("$countdown", color = Color.White, fontSize = 220.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Center))
         }
         if (recording) {
-            Text("${remaining}s", color = Color.White, fontSize = 40.sp, fontWeight = FontWeight.Bold,
+            Text("${remaining}s", color = onBorder, fontSize = 40.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = 32.dp))
         }
         if (processing) {
@@ -231,8 +237,10 @@ fun BoothScreen(
             }
         }
         banner?.let {
-            Text(it, color = Color(0xFF66BB6A), fontSize = 36.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = 32.dp))
+            Text(it, color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 20.dp)
+                    .clip(RoundedCornerShape(28.dp)).background(Color(0xCC1B5E20))
+                    .padding(horizontal = 28.dp, vertical = 10.dp))
         }
 
         // tasto impostazioni
@@ -332,9 +340,12 @@ fun BoothScreen(
                     )
                 }
                 val enabled = connected && !starting
+                if (!recording) {
+                    Box(Modifier.size(180.dp).border(4.dp, Color.White.copy(alpha = 0.9f), CircleShape))
+                }
                 Box(
-                    Modifier.size(160.dp).clip(CircleShape)
-                        .background(if (enabled) Color(0xFFE53935) else Color.Gray)
+                    Modifier.size(if (recording) 160.dp else 148.dp).clip(CircleShape)
+                        .background(if (enabled) Color(0xFFFF2D3D) else Color.Gray)
                         .clickable(enabled = enabled) {
                             if (recording) client.send("STOP") else { shotKind = "video"; starting = true }
                         },
@@ -347,13 +358,19 @@ fun BoothScreen(
 
         // tasto FOTO
         if (!hasTake && !processing && connected && !recording && !starting && countdown == 0 && info?.optBoolean("hasPhoto") == true) {
-            Box(
-                Modifier.align(Alignment.BottomCenter).offset(x = 170.dp).padding(bottom = 72.dp)
-                    .size(96.dp).clip(CircleShape).background(Color(0xFF1565C0))
-                    .clickable { shotKind = "photo"; starting = true },
-                contentAlignment = Alignment.Center,
+            Column(
+                Modifier.align(Alignment.BottomCenter).offset(x = 190.dp).padding(bottom = 50.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text("📷", fontSize = 40.sp)
+                Box(
+                    Modifier.size(88.dp).clip(CircleShape).background(Color.White)
+                        .clickable { shotKind = "photo"; starting = true },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("📷", fontSize = 40.sp)
+                }
+                Text("FOTO", color = onBorder, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(top = 6.dp))
             }
         }
 
@@ -384,7 +401,7 @@ fun BoothScreen(
 
         // torcia e focali
         if (!hasTake && !processing && connected && viewing == null) {
-            info?.let { CameraControls(client, it, Modifier.align(Alignment.CenterEnd).padding(top = 96.dp, bottom = 96.dp, end = 24.dp)) }
+            info?.let { CameraControls(client, it, Modifier.align(Alignment.CenterEnd).padding(top = zoneTop, bottom = zoneBottom, end = 24.dp)) }
         }
 
         // batteria e spazio del telefono
@@ -398,13 +415,18 @@ fun BoothScreen(
         ) {
             Text(
                 local.welcome,
-                color = Color.White,
+                color = if (wide) onBorder else Color.White,
                 fontSize = 30.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 240.dp)
-                    .clip(RoundedCornerShape(24.dp)).background(Color(0x99000000))
-                    .padding(horizontal = 28.dp, vertical = 14.dp),
+                modifier = if (wide) {
+                    // bordo largo: il messaggio sta nella fascia in alto, fuori dall'immagine
+                    Modifier.align(Alignment.TopCenter).padding(top = 24.dp, start = 260.dp, end = 260.dp)
+                } else {
+                    Modifier.align(Alignment.BottomCenter).padding(bottom = 240.dp)
+                        .clip(RoundedCornerShape(24.dp)).background(Color(0x99000000))
+                        .padding(horizontal = 28.dp, vertical = 14.dp)
+                },
             )
         }
 
@@ -415,7 +437,7 @@ fun BoothScreen(
                 list = history,
                 selected = viewing?.name,
                 onSelect = { viewing = it },
-                modifier = Modifier.align(Alignment.CenterStart).padding(start = 16.dp, top = 24.dp, bottom = 24.dp),
+                modifier = Modifier.align(Alignment.CenterStart).padding(start = 16.dp, top = if (wide) zoneTop else 24.dp, bottom = if (wide) zoneBottom else 24.dp),
             )
         }
         viewing?.let { v ->

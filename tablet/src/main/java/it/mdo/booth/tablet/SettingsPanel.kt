@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -87,6 +90,8 @@ fun SettingsPanel(
             }
 
             FrameSettings(client, info, frames, onPickFrame)
+
+            BorderSettings(local)
 
             DashSettings(dashCfg)
 
@@ -317,4 +322,49 @@ private fun RemoteSettings(local: LocalSettings) {
     if (lines.isNotEmpty()) {
         Text(lines.joinToString("\n"), color = Color(0xFF9AA0A6), fontSize = 13.sp)
     }
+}
+
+@Composable
+private fun BorderSettings(local: LocalSettings) {
+    Section("BORDO ANTEPRIMA")
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Chip("Pieno schermo", local.borderMode == 0) { local.borderMode = 0; local.save() }
+        Chip("Sottile", local.borderMode == 1) { local.borderMode = 1; local.save() }
+        Chip("Largo", local.borderMode == 2) { local.borderMode = 2; local.save() }
+    }
+    Text("Largo: l'immagine si rimpicciolisce e i tasti stanno sul bordo, non sopra la cornice.",
+        color = Color.Gray, fontSize = 13.sp)
+    Label("Colore del bordo")
+    val presets = listOf(
+        "Fucsia" to 0xFFD61F9E, "Nero" to 0xFF000000, "Bianco" to 0xFFFFFFFF, "Oro" to 0xFFD4AF37, "Rosa" to 0xFFF4C2C2,
+        "Salvia" to 0xFF9CAF88, "Blu notte" to 0xFF0B1F3A, "Bordeaux" to 0xFF5A1224,
+    )
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        presets.forEach { (name, c) ->
+            val argb = c.toInt()
+            Box(
+                Modifier.clip(RoundedCornerShape(20.dp))
+                    .background(Color(argb))
+                    .border(if (local.borderColor == argb) 4.dp else 1.dp,
+                        if (local.borderColor == argb) Color(0xFFE53935) else Color(0xFF5F6368), RoundedCornerShape(20.dp))
+                    .clickable { local.borderColor = argb; local.save() }
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+                Text(name, color = if (Color(argb).luminance() > 0.5f) Color.Black else Color.White, fontSize = 16.sp)
+            }
+        }
+    }
+    var hex by remember(local.borderColor) { mutableStateOf("#%06X".format(local.borderColor and 0xFFFFFF)) }
+    OutlinedTextField(
+        value = hex,
+        onValueChange = { v ->
+            hex = v.take(7)
+            val clean = hex.removePrefix("#")
+            if (clean.length == 6) clean.toIntOrNull(16)?.let { local.borderColor = (0xFF000000.toInt() or it); local.save() }
+        },
+        singleLine = true,
+        label = { Text("Altro colore (#RRGGBB)") },
+        modifier = Modifier.fillMaxWidth(),
+        textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+    )
 }
