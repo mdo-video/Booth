@@ -12,10 +12,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Estrai lo zip
+      - name: Trova lo zip giusto
         run: |
-          unzip -q BoothDediche-3.zip -d tmp
-          grep -q '^appVersionName=1.14' tmp/BoothDediche/gradle.properties || { echo "Questo zip non e la 1.14"; exit 1; }
+          ls -la *.zip
+          OK=""
+          for z in *.zip; do
+            rm -rf tmp
+            if unzip -q "$z" -d tmp 2>/dev/null && grep -q '^appVersionName=1.14' tmp/BoothDediche/gradle.properties 2>/dev/null; then
+              OK="$z"; break
+            fi
+          done
+          [ -n "$OK" ] || { echo "Nessuno zip valido con la 1.14"; exit 1; }
+          echo "Uso: $OK"
           rm -rf tmp/BoothDediche/.github
           cp -a tmp/BoothDediche/. .
           rm -rf tmp
@@ -25,7 +33,7 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add -A
-          git commit -m "Estrai BoothDediche-3.zip" || echo "Niente da salvare"
+          git commit -m "Estrai zip 1.14" || echo "Niente da salvare"
           git push
 
       - name: Avvia la compilazione
