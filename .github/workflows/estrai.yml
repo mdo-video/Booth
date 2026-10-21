@@ -1,0 +1,34 @@
+name: Estrai zip
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  estrai:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Estrai lo zip
+        run: |
+          unzip -q BoothDediche-3.zip -d tmp
+          grep -q '^appVersionName=1.14' tmp/BoothDediche/gradle.properties || { echo "Questo zip non e la 1.14"; exit 1; }
+          rm -rf tmp/BoothDediche/.github
+          cp -a tmp/BoothDediche/. .
+          rm -rf tmp
+
+      - name: Salva i file nel repo
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add -A
+          git commit -m "Estrai BoothDediche-3.zip" || echo "Niente da salvare"
+          git push
+
+      - name: Avvia la compilazione
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run release-apk.yml --ref main
