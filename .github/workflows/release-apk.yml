@@ -1,0 +1,50 @@
+name: Release APK
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.7
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Compila
+        run: gradle :camera:assembleDebug :tablet:assembleDebug :control:assembleDebug --no-daemon -PupdateToken=${{ secrets.UPDATE_TOKEN }}
+
+      - name: Leggi la versione
+        id: ver
+        run: |
+          echo "code=$(grep '^appVersionCode=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+          echo "name=$(grep '^appVersionName=' gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Prepara gli APK
+        run: |
+          mkdir out
+          cp camera/build/outputs/apk/debug/camera-debug.apk out/booth-camera.apk
+          cp tablet/build/outputs/apk/debug/tablet-debug.apk out/booth-tablet.apk
+          cp control/build/outputs/apk/debug/control-debug.apk out/booth-control.apk
+
+      - name: Pubblica la release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.code }}
+          name: Booth ${{ steps.ver.outputs.name }}
+          make_latest: true
+          files: out/*.apk
