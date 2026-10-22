@@ -126,7 +126,7 @@ class MainActivity : ComponentActivity() {
             local.kiosk = false
             local.save()
             runOnUiThread { runCatching { stopLockTask() } }
-        }.also { it.check() }
+        }.also { it.check(); it.startAutoCheck() }
         val need = buildList {
             add(Manifest.permission.CAMERA)
             add(Manifest.permission.RECORD_AUDIO)

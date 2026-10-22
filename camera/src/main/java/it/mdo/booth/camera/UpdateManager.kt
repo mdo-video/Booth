@@ -1,6 +1,11 @@
 package it.mdo.booth.camera
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.pm.PackageManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -57,9 +62,50 @@ class UpdateManager(
             } else if (f.code > installedCode()) {
                 found = f
                 set(Status("Disponibile: ${f.name} (installata ${installedName()})", canInstall = true))
+                notifyAvailable(f)
             } else {
                 set(Status("Aggiornata: versione ${installedName()}"))
             }
+        }
+    }
+
+    /** Controlla da solo ogni 6 ore (la prima volta dopo 1 minuto), così la notifica arriva anche a app aperta a lungo. */
+    fun startAutoCheck() {
+        if (autoStarted) return
+        autoStarted = true
+        thread(isDaemon = true) {
+            Thread.sleep(60_000)
+            while (true) {
+                runCatching { check() }
+                Thread.sleep(6 * 60 * 60 * 1000L)
+            }
+        }
+    }
+
+    @Volatile private var autoStarted = false
+
+    /** Notifica "aggiornamento disponibile": una sola volta per versione, solo se le notifiche sono consentite. */
+    private fun notifyAvailable(f: Found) {
+        try {
+            if (Build.VERSION.SDK_INT >= 33 &&
+                ctx.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            ) return
+            val prefs = ctx.getSharedPreferences("update_notify", Context.MODE_PRIVATE)
+            if (prefs.getInt("last", 0) >= f.code) return
+            val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.createNotificationChannel(NotificationChannel("update", "Aggiornamenti", NotificationManager.IMPORTANCE_DEFAULT))
+            val open = ctx.packageManager.getLaunchIntentForPackage(ctx.packageName)
+            val pi = PendingIntent.getActivity(ctx, 0, open, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            val n = Notification.Builder(ctx, "update")
+                .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                .setContentTitle("Aggiornamento disponibile")
+                .setContentText("${f.name} · apri l'app e tocca Installa")
+                .setContentIntent(pi)
+                .setAutoCancel(true)
+                .build()
+            nm.notify(4242, n)
+            prefs.edit().putInt("last", f.code).apply()
+        } catch (e: Exception) {
         }
     }
 

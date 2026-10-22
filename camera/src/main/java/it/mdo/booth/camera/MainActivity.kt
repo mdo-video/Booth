@@ -101,10 +101,15 @@ class MainActivity : AppCompatActivity() {
         }
         updText.text = updates.status.value.text
         updates.check()
+        updates.startAutoCheck()
 
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-            if (result.values.all { it }) boot() else status.text = "Servono permessi camera e microfono"
-        }.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO))
+            if (result[Manifest.permission.CAMERA] == true && result[Manifest.permission.RECORD_AUDIO] == true) boot() else status.text = "Servono permessi camera e microfono"
+        }.launch(buildList {
+            add(Manifest.permission.CAMERA)
+            add(Manifest.permission.RECORD_AUDIO)
+            if (android.os.Build.VERSION.SDK_INT >= 33) add(Manifest.permission.POST_NOTIFICATIONS)
+        }.toTypedArray())
     }
 
     private fun boot() {
