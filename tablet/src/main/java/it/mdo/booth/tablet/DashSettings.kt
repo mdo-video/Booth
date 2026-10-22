@@ -60,8 +60,10 @@ fun DashSettings(cfg: DashConfig) {
         val st by upd.status.collectAsState()
         Text(st.text, color = Color.LightGray, fontSize = 16.sp)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val actx = androidx.compose.ui.platform.LocalContext.current
             Chip("Controlla", false) { upd.check() }
             if (st.canInstall) Chip("Installa", true) { upd.installNow() }
+            Chip("Novità", false) { (actx as? android.app.Activity)?.let { Changelog.show(it) } }
         }
     }
 }

@@ -20,6 +20,7 @@
         android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
         <activity
             android:name=".MainActivity"
+            android:launchMode="singleTop"
             android:exported="true"
             android:screenOrientation="landscape">
             <intent-filter>

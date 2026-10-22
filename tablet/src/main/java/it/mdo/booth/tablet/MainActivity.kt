@@ -127,6 +127,8 @@ class MainActivity : ComponentActivity() {
             local.save()
             runOnUiThread { runCatching { stopLockTask() } }
         }.also { it.check(); it.startAutoCheck() }
+        DashState.updates?.handleIntent(intent)
+        window.decorView.post { DashState.updates?.let { Changelog.showIfNew(this, it.installedCode()) } }
         val need = buildList {
             add(Manifest.permission.CAMERA)
             add(Manifest.permission.RECORD_AUDIO)
@@ -181,6 +183,11 @@ class MainActivity : ComponentActivity() {
     }
 
     /** Telecomando Bluetooth: i suoi tasti diventano gesti (singola/doppia/tripla/lunga). */
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        DashState.updates?.handleIntent(intent)
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (::local.isInitialized && RemoteInput.handle(event, local)) return true
         return super.dispatchKeyEvent(event)

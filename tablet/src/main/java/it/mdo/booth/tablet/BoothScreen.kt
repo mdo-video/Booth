@@ -13,6 +13,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import org.json.JSONObject
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -309,23 +311,48 @@ fun BoothScreen(
                 Column(
                     // a sinistra della colonna di tasti (96dp + 24dp di margine + 16dp di respiro) per non coprirli
                     Modifier.align(Alignment.TopEnd).padding(top = 90.dp, end = 136.dp)
-                        .widthIn(max = 440.dp)
-                        .clip(RoundedCornerShape(18.dp)).background(Color(0xE61B1D22)).padding(20.dp),
-                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+                        .widthIn(min = 360.dp, max = 460.dp)
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(Color(0xF21D1026))
+                        .border(2.dp, Color(0x66FF2BFF), RoundedCornerShape(28.dp))
+                        .padding(22.dp),
+                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
                 ) {
-                    Text(
-                        if (remoteConnected) "Telecomando · collegato ✓" else "Telecomando · non collegato",
-                        color = if (remoteConnected) Color(0xFF66BB6A) else Color(0xFFEF5350),
-                        fontSize = 18.sp, fontWeight = FontWeight.Bold,
-                    )
-                    if (!remoteConnected) {
-                        Text("Premi il tasto per risvegliarlo", color = Color(0xFF9AA0A6), fontSize = 14.sp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+                    ) {
+                        Box(
+                            Modifier.size(14.dp).clip(CircleShape)
+                                .background(if (remoteConnected) Color(0xFF43A047) else Color(0xFFE53935))
+                        )
+                        Column {
+                            Text(
+                                if (remoteConnected) "Telecomando · collegato" else "Telecomando · non collegato",
+                                color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.Bold,
+                            )
+                            if (!remoteConnected) {
+                                Text("Premi il tasto per risvegliarlo", color = Color(0xFFC9A4E6), fontSize = 13.sp)
+                            }
+                        }
                     }
                     legendLines.forEach { (gesto, azione) ->
-                        Text("$gesto  →  $azione", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                        Row(
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color(0xFF2A1B38))
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+                        ) {
+                            Text(gesto, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                azione, color = Color(0xFF14101A), fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                                modifier = Modifier.clip(RoundedCornerShape(50)).background(Color(0xFFFFE83A))
+                                    .padding(horizontal = 14.dp, vertical = 5.dp),
+                            )
+                        }
                     }
                     if (!hasTake) {
-                        Text("Conto alla rovescia: annulla · REC: STOP", color = Color(0xFF9AA0A6), fontSize = 14.sp)
+                        Text("Conto alla rovescia: annulla · REC: STOP", color = Color(0xFFC9A4E6), fontSize = 13.sp)
                     }
                 }
             }

@@ -96,3 +96,17 @@ Batteria e spazio più grandi (rosso quando stanno finendo). Nuovo preset colore
 Font Poppins incluso nell'app, icone disegnate (batteria, scheda, torcia, flash, cornice, lucchetto, fotocamera, ingranaggio),
 miniature dello storico 16:9 con bordo bianco e titolo ULTIMI, video con angoli arrotondati e ombra, tasti scuri viola semitrasparenti.
 Il bordo Fucsia è il colore predefinito per le nuove installazioni. Solo app Booth (tablet).
+
+## Novità 1.16 — legenda del telecomando
+La legenda dei gesti sta a sinistra della colonna di tasti e non li copre più; testo completo.
+
+## Novità 1.17 — notifica di aggiornamento
+Notifica quando esce una nuova versione (tablet, camera, controllo); controllo automatico ogni 6 ore.
+
+## Novità 1.18 — aggiornamenti pronti, novità nell'app, scheda telecomando
+- Quando esce una versione nuova l'app scarica da sola l'APK in background e manda la notifica "Aggiornamento pronto": un tocco e parte l'installazione.
+  Se il download fallisce resta la notifica "Aggiornamento disponibile" (Installa dalle impostazioni).
+- Novità di ogni versione (`Changelog.kt` in ogni app): finestra dopo l'aggiornamento e voce **Novità** nelle impostazioni (tablet e controllo);
+  sul telefono camera si tocca la scritta della versione.
+- Tablet: scheda del telecomando ridisegnata (stato collegato, gesti a sinistra e azione a destra in pillola gialla).
+- Le Activity sono `singleTop` per ricevere il tocco sulla notifica.

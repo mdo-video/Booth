@@ -102,6 +102,9 @@ class MainActivity : AppCompatActivity() {
         updText.text = updates.status.value.text
         updates.check()
         updates.startAutoCheck()
+        updates.handleIntent(intent)
+        updText.setOnClickListener { Changelog.show(this) }   // tocca la scritta della versione per le novità
+        window.decorView.post { Changelog.showIfNew(this, updates.installedCode()) }
 
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
             if (result[Manifest.permission.CAMERA] == true && result[Manifest.permission.RECORD_AUDIO] == true) boot() else status.text = "Servono permessi camera e microfono"
@@ -160,6 +163,11 @@ class MainActivity : AppCompatActivity() {
             cmd.startsWith("DEL:") -> cam.deleteHistory(cmd.removePrefix("DEL:"))
             cmd.startsWith("SET:") -> runCatching { cam.applySettings(JSONObject(cmd.removePrefix("SET:"))) }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        updates.handleIntent(intent)
     }
 
     override fun onUserInteraction() {

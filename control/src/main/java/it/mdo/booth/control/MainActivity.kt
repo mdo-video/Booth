@@ -63,10 +63,20 @@ import java.util.Locale
 class MainActivity : ComponentActivity() {
     private lateinit var api: Api
 
+    private var updRef: UpdateManager? = null
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        updRef?.handleIntent(intent)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         api = Api(this).also { it.start() }
         val upd = UpdateManager(this, "booth-control.apk", BuildConfig.UPDATE_TOKEN).also { it.check(); it.startAutoCheck() }
+        updRef = upd
+        upd.handleIntent(intent)
+        window.decorView.post { Changelog.showIfNew(this, upd.installedCode()) }
         if (android.os.Build.VERSION.SDK_INT >= 33 &&
             checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
         ) {
@@ -658,8 +668,10 @@ private fun SettingsTab(api: Api, upd: UpdateManager) {
             Text("Questa app", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
             Text(mine.text, color = Color(0xFFB0B5C0), fontSize = 14.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val actx = androidx.compose.ui.platform.LocalContext.current
                 Chip("Controlla", false) { upd.check() }
                 if (mine.canInstall) Chip("Installa", true) { upd.installNow() }
+                Chip("Novità", false) { (actx as? android.app.Activity)?.let { Changelog.show(it) } }
             }
         }
     }
