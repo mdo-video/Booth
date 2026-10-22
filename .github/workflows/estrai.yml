@@ -1,10 +1,17 @@
 name: Estrai zip
 on:
+  push:
+    branches: [main]
+    paths: ['*.zip']
   workflow_dispatch:
 
 permissions:
   contents: write
   actions: write
+
+concurrency:
+  group: estrai-zip
+  cancel-in-progress: false
 
 jobs:
   estrai:
@@ -41,6 +48,7 @@ jobs:
           git config user.email "actions@github.com"
           git add -A
           git commit -m "Estrai zip" || echo "Niente da salvare"
+          git pull --rebase
           git push
 
       - name: Avvia la compilazione
