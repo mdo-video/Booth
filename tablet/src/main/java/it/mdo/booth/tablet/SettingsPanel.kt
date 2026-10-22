@@ -133,7 +133,7 @@ fun SettingsPanel(
                 textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
             )
             SwitchRow("Kiosk (blocca le altre app)", local.kiosk) { local.kiosk = it; local.save(); onKiosk(it) }
-            Text("Condividere un video disattiva il kiosk.", color = Color.Gray, fontSize = 13.sp)
+            Text("Le impostazioni si aprono con pressione lunga sull'angolo in alto a destra e il codice a 6 cifre (lo stesso dell'app Controllo).", color = Color.Gray, fontSize = 13.sp)
         }
     }
 }
@@ -190,6 +190,7 @@ private fun PhoneSettings(client: BoothClient, info: JSONObject) {
     if (info.optBoolean("hasFlash")) {
         SwitchRow("Flash nelle foto (doppio LED)", info.optBoolean("flash")) { send("flash", it) }
     }
+    SwitchRow("Blocco FISSO (esposizione e fuoco)", info.optBoolean("lock")) { send("lock", it) }
 
     if (info.optBoolean("evSupported") && info.optInt("evMax") > info.optInt("evMin")) {
         val lo = info.optInt("evMin")

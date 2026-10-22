@@ -21,6 +21,14 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(24, "1.19", "Booth a prova di ospite", listOf(
+            "Condividi apre solo il QR (salva il video se serve): non si esce più dal kiosk",
+            "Dopo il video: Rifai, Salva, Condividi. Dopo il salvataggio: Nuova, Condividi",
+            "Nello storico: Chiudi e Condividi. Eliminare i video si può solo dall'app Controllo",
+            "Ingranaggio nascosto: impostazioni con pressione lunga in alto a destra e codice a 6 cifre",
+            "Tolti CORNICE e AUTO/FISSO dal tablet (restano nelle impostazioni e in Controllo)",
+            "Notifica dashcam sincera: dice \"Registrazione in corso\" solo se registra davvero, altrimenti \"Dashcam ferma\" con il motivo; con la dashcam spenta non c'è notifica",
+        )),
         Entry(23, "1.18", "Nuovo look e aggiornamenti pronti", listOf(
             "Aggiornamenti scaricati da soli in background: arriva la notifica \"Aggiornamento pronto\" e basta toccare Installa",
             "Scheda del telecomando ridisegnata, con stato collegato e azioni ben leggibili",

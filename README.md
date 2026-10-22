@@ -110,3 +110,11 @@ Notifica quando esce una nuova versione (tablet, camera, controllo); controllo a
   sul telefono camera si tocca la scritta della versione.
 - Tablet: scheda del telecomando ridisegnata (stato collegato, gesti a sinistra e azione a destra in pillola gialla).
 - Le Activity sono `singleTop` per ricevere il tocco sulla notifica.
+
+## Novità 1.19 — booth a prova di ospite
+- **Condividi = QR**: non apre più il menu di condivisione di Android, quindi il kiosk non si disattiva. Su un video non ancora salvato salva e poi mostra il QR.
+- Tasti dopo il video: *Rifai · Salva · Condividi*; dopo il salvataggio: *Nuova · Condividi*. Nello storico: *Chiudi · Condividi*. **Elimina** tolto dal tablet (resta in Controllo).
+- **Impostazioni protette**: niente ingranaggio. Pressione lunga sull'angolo in alto a destra del tablet + codice a 6 cifre (lo stesso dell'app Controllo, mostrato in Impostazioni → DASHCAM). Dopo 5 errori blocco di 30 s. Dall'app Controllo (tab Impost.) si cambia tutto senza toccare il tablet.
+- Tasti per gli ospiti: restano solo TORCIA e FLASH. CORNICE e AUTO/FISSO si cambiano dalle impostazioni (nuovo interruttore *Blocco FISSO* anche in Controllo).
+- Telecomando: su un video non salvato, lunga/3/4 pressioni = Condividi (salva + QR).
+- **Notifica dashcam veritiera**: "Registrazione video e audio in corso" solo mentre registra; altrimenti "Dashcam ferma" con il motivo (fotocamera non disponibile, ecc.). Con la dashcam disattivata la notifica sparisce (il servizio resta attivo per l'app Controllo; Android la richiede solo finché registra).

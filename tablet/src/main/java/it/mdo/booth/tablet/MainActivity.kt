@@ -138,7 +138,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
                 androidx.compose.material3.ProvideTextStyle(androidx.compose.ui.text.TextStyle(fontFamily = Poppins)) {
-                BoothScreen(client, local, frames, onKiosk = ::setKiosk, onShare = ::shareTake, onPickFrame = ::chooseFrame, dashCfg = dashCfg)
+                BoothScreen(client, local, frames, onKiosk = ::setKiosk, onPickFrame = ::chooseFrame, dashCfg = dashCfg)
                 }
             }
         }
@@ -155,31 +155,6 @@ class MainActivity : ComponentActivity() {
 
     private fun setKiosk(on: Boolean) {
         runCatching { if (on) startLockTask() else stopLockTask() }
-    }
-
-    /** Scarica il video dal telefono e apre il menu Condividi (WhatsApp, email...). */
-    private fun shareTake(path: String, fileName: String, onProgress: (Float) -> Unit, done: (Boolean) -> Unit) {
-        // il blocco kiosk impedisce di aprire altre app: lo togliamo
-        runCatching { stopLockTask() }
-        local.kiosk = false
-        local.save()
-
-        val dir = File(cacheDir, "share").apply { mkdirs(); listFiles()?.forEach { it.delete() } }
-        val dest = File(dir, fileName)
-        client.download(path, dest, { p -> runOnUiThread { onProgress(p) } }) { ok ->
-            runOnUiThread {
-                done(ok)
-                if (ok) {
-                    val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", dest)
-                    val send = Intent(Intent.ACTION_SEND).apply {
-                        type = if (fileName.endsWith(".jpg")) "image/jpeg" else "video/mp4"
-                        putExtra(Intent.EXTRA_STREAM, uri)
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    }
-                    startActivity(Intent.createChooser(send, "Condividi dedica"))
-                }
-            }
-        }
     }
 
     /** Telecomando Bluetooth: i suoi tasti diventano gesti (singola/doppia/tripla/lunga). */

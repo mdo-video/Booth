@@ -96,22 +96,17 @@ private fun HistoryThumb(client: BoothClient, item: HistoryItem, selected: Boole
     }
 }
 
-/** Anteprima di un video dello storico: guarda, condividi, QR, elimina. */
+/** Anteprima di un video dello storico: guarda, poi Chiudi o Condividi (QR). Gli ospiti non possono eliminare. */
 @Composable
 fun HistoryCard(
     client: BoothClient,
     path: String,
     cacheKey: String,
     name: String,
-    sharing: Boolean,
     onClose: () -> Unit,
     onShare: () -> Unit,
-    onQr: () -> Unit,
-    onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var confirm by remember(name) { mutableStateOf(false) }
-    LaunchedEffect(confirm) { if (confirm) { delay(3000); confirm = false } }
     Column(
         modifier.width(320.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xEE1B1D22)).padding(10.dp)
     ) {
@@ -120,16 +115,7 @@ fun HistoryCard(
         Text(name, color = Color.White, fontSize = 14.sp, modifier = Modifier.padding(bottom = 6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             CardButton("Chiudi", Color(0xFF3A3F47), Modifier.weight(1f), onClose)
-            CardButton(if (sharing) "…" else "Condividi", Color(0xFF1565C0), Modifier.weight(1f)) {
-                if (!sharing) onShare()
-            }
-            CardButton("QR", Color(0xFF6A1B9A), Modifier.weight(1f), onQr)
+            CardButton("Condividi", Color(0xFF1565C0), Modifier.weight(1f), onShare)
         }
-        Spacer(Modifier.height(8.dp))
-        CardButton(
-            if (confirm) "Tocca ancora per eliminare" else "Elimina",
-            if (confirm) Color(0xFFC62828) else Color(0xFF3A3F47),
-            Modifier.fillMaxWidth(),
-        ) { if (confirm) onDelete() else confirm = true }
     }
 }

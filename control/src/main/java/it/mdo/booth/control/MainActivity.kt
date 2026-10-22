@@ -509,6 +509,7 @@ private fun SettingsTab(api: Api, upd: UpdateManager) {
                     if (info.optBoolean("hasFlash")) {
                         SwitchLine("Flash nelle foto (doppio LED)", info.optBoolean("flash")) { sendPhone("flash", it) }
                     }
+                    SwitchLine("Blocco FISSO (esposizione e fuoco)", info.optBoolean("lock")) { sendPhone("lock", it) }
                     if (info.optBoolean("evSupported") && info.optInt("evMax") > info.optInt("evMin")) {
                         val lo = info.optInt("evMin")
                         val hi = info.optInt("evMax")
@@ -632,7 +633,7 @@ private fun SettingsTab(api: Api, upd: UpdateManager) {
                         }
                     }
                     SwitchLine("Kiosk (blocca le altre app)", tab.optBoolean("kiosk")) { sendTablet("kiosk", it) }
-                    Note("Condividere un video disattiva il kiosk.")
+                    Note("Sul tablet le impostazioni si aprono con pressione lunga sull'angolo in alto a destra e il codice a 6 cifre.")
                 }
             }
         } else {

@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 
-/** Piccola anteprima in basso a destra: guarda il video, poi Rifai / Salva / Condividi. */
+/** Piccola anteprima in basso a destra: guarda il video, poi Rifai / Salva / Condividi (QR). */
 @Composable
 fun TakeCard(
     client: BoothClient,
@@ -41,12 +41,10 @@ fun TakeCard(
     cacheKey: String,
     saved: Boolean,
     savedName: String?,
-    sharing: Boolean,
     onRedo: () -> Unit,
     onSave: () -> Unit,
     onShare: () -> Unit,
     modifier: Modifier = Modifier,
-    onQr: () -> Unit = {},
 ) {
     Column(
         modifier.width(320.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xEE1B1D22)).padding(10.dp)
@@ -64,10 +62,8 @@ fun TakeCard(
             } else {
                 CardButton("Nuova", Color(0xFFE53935), Modifier.weight(1f), onRedo)
             }
-            CardButton(if (sharing) "…" else "Condividi", Color(0xFF1565C0), Modifier.weight(1f)) {
-                if (!sharing) onShare()
-            }
-            if (saved) CardButton("QR", Color(0xFF6A1B9A), Modifier.weight(1f), onQr)
+            // Condividi salva (se serve) e mostra il QR: non si esce mai dal kiosk
+            CardButton("Condividi", Color(0xFF1565C0), Modifier.weight(1f), onShare)
         }
     }
 }

@@ -81,6 +81,8 @@ class DashcamService : Service() {
     private var motion: MotionGuard? = null
     private val main = Handler(Looper.getMainLooper())
     private val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US)
+    private var fgShown = false
+    private var lastNotifKey = ""
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -95,17 +97,14 @@ class DashcamService : Service() {
 
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel(CHANNEL, "Dashcam", NotificationManager.IMPORTANCE_LOW))
-        val notif = Notification.Builder(this, CHANNEL)
-            .setContentTitle("Dashcam attiva")
-            .setContentText("Registrazione video e audio in corso")
-            .setSmallIcon(android.R.drawable.ic_menu_camera)
-            .setOngoing(true)
-            .build()
+        // Android vuole subito una notifica: all'avvio è neutra, poi riflette lo stato reale (refreshNotif)
         try {
             ServiceCompat.startForeground(
-                this, NOTIF_ID, notif,
+                this, NOTIF_ID, buildNotif("Dashcam", "Avvio in corso…"),
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
             )
+            fgShown = true
+            lastNotifKey = "Dashcam|Avvio in corso…"
         } catch (e: Exception) {
             DashState.lastError = "servizio non avviabile: $e"
             stopSelf()
@@ -127,6 +126,52 @@ class DashcamService : Service() {
         motion = MotionGuard(this, { cfg.motion }, { cfg.motionDeg }, ::onMotion).also { it.start() }
         EventLog.add("APP_AVVIATA", "v" + (DashState.updates?.installedName() ?: ""))
         handler.post(tick)
+        notifyState()
+    }
+
+    private fun buildNotif(title: String, text: String): Notification =
+        Notification.Builder(this, CHANNEL)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setSmallIcon(android.R.drawable.ic_menu_camera)
+            .setOngoing(true)
+            .build()
+
+    /** Aggiorna la notifica in modo che dica solo cose vere. Va chiamata a ogni cambio di stato. */
+    private fun notifyState() { main.post { refreshNotif() } }
+
+    private fun refreshNotif() {
+        if (!DashState.serviceUp) return
+        if (!cfg.enabled) {
+            // dashcam spenta dalle impostazioni: nessuna notifica. Il servizio resta attivo per l'app Controllo.
+            if (fgShown) {
+                runCatching { stopForeground(Service.STOP_FOREGROUND_REMOVE) }
+                fgShown = false
+                lastNotifKey = ""
+            }
+            return
+        }
+        val (title, text) = when {
+            DashState.recording -> "Dashcam attiva" to "Registrazione video e audio in corso"
+            DashState.lastError.isNotEmpty() -> "Dashcam ferma" to DashState.lastError
+            else -> "Dashcam ferma" to "In attesa di avviare la registrazione…"
+        }
+        val key = "$title|$text"
+        if (fgShown && key == lastNotifKey) return
+        try {
+            if (!fgShown) {
+                ServiceCompat.startForeground(
+                    this, NOTIF_ID, buildNotif(title, text),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
+                )
+                fgShown = true
+            } else {
+                getSystemService(NotificationManager::class.java).notify(NOTIF_ID, buildNotif(title, text))
+            }
+            lastNotifKey = key
+        } catch (e: Exception) {
+            DashState.lastError = "notifica non aggiornabile: $e"
+        }
     }
 
     override fun onDestroy() {
@@ -164,6 +209,7 @@ class DashcamService : Service() {
         cleanup()
         if (cfg.enabled && !DashState.recording && System.currentTimeMillis() - lastTry > 30_000) startRecording()
         if (!cfg.enabled && DashState.recording) stopRecording()
+        notifyState()
     }
 
     private fun battery(): Pair<Int, Boolean> {
@@ -239,6 +285,7 @@ class DashcamService : Service() {
             DashState.lastError = "Impossibile aprire la fotocamera"
             DashState.cams = "nessuna"
             EventLog.add("DASH_ERRORE", DashState.lastError)
+            notifyState()
         }
     }
 
@@ -249,6 +296,7 @@ class DashcamService : Service() {
         DashState.recording = true
         DashState.lastSegmentAt = System.currentTimeMillis()
         EventLog.add("DASH_AVVIO", DashState.cams)
+        notifyState()
         handler.postDelayed(rotate, cfg.segMin * 60_000L)
     }
 
@@ -275,6 +323,7 @@ class DashcamService : Service() {
         DashState.recording = false
         DashState.cams = "nessuna"
         if (wasRecording) EventLog.add("DASH_STOP")
+        notifyState()
     }
 
     private fun lost(msg: String) {

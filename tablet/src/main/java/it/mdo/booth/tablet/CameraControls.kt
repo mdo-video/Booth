@@ -31,7 +31,7 @@ import kotlin.math.abs
 private val OnColor = Color(0xFFFFD54A)
 private val OffColor = UiDark
 
-/** Colonna di tasti grandi: torcia (ON/OFF) e focali. Il tasto acceso è giallo pieno. */
+/** Colonna di tasti per gli ospiti: solo torcia e flash. Cornice e blocco AUTO/FISSO si cambiano dalle impostazioni. */
 @Composable
 fun CameraControls(client: BoothClient, info: JSONObject, modifier: Modifier = Modifier) {
     val lenses = info.dblList("lenses")
@@ -54,16 +54,6 @@ fun CameraControls(client: BoothClient, info: JSONObject, modifier: Modifier = M
             ControlButton(R.drawable.ic_bolt, "FLASH", f) {
                 client.set(JSONObject().put("flash", !f))
             }
-        }
-        if (info.optBoolean("hasFrame")) {
-            val fr = info.optBoolean("frame")
-            ControlButton(R.drawable.ic_frame, "CORNICE", fr) {
-                client.set(JSONObject().put("frame", !fr))
-            }
-        }
-        val lockOn = info.optBoolean("lock")
-        ControlButton(if (lockOn) R.drawable.ic_lock else R.drawable.ic_lock_open, if (lockOn) "FISSO" else "AUTO", lockOn) {
-            client.set(JSONObject().put("lock", !lockOn))
         }
     }
 }

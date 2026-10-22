@@ -38,6 +38,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import android.graphics.BitmapFactory
@@ -52,7 +54,6 @@ fun BoothScreen(
     local: LocalSettings,
     frames: FrameStore,
     onKiosk: (Boolean) -> Unit,
-    onShare: (String, String, (Float) -> Unit, (Boolean) -> Unit) -> Unit,
     onPickFrame: () -> Unit,
     dashCfg: DashConfig,
 ) {
@@ -77,9 +78,9 @@ fun BoothScreen(
     var viewing by remember { mutableStateOf<HistoryItem?>(null) }
     var qr by remember { mutableStateOf<QrRequest?>(null) }
     var shotKind by remember { mutableStateOf("video") }
-    var shareProgress by remember { mutableStateOf<Float?>(null) }
-    var shareResult by remember { mutableStateOf<Boolean?>(null) }
-    val sharing = shareProgress != null
+    var showPin by remember { mutableStateOf(false) }
+    // Condividi su un video non ancora salvato: salva, poi mostra il QR appena il telefono conferma
+    var pendingQr by remember { mutableStateOf(false) }
 
     val parts = state.split(":")
     val recording = state == "RECORDING"
@@ -128,8 +129,12 @@ fun BoothScreen(
         }
     }
     LaunchedEffect(takeSaved, savedName) {
-        if (takeSaved && savedName != null && local.autoQr && base != null) qr = QrRequest("$base/h/$savedName")
+        if (takeSaved && savedName != null && (local.autoQr || pendingQr) && base != null) {
+            qr = QrRequest("$base/h/$savedName")
+            pendingQr = false
+        }
     }
+    LaunchedEffect(hasTake) { if (!hasTake) pendingQr = false }
     LaunchedEffect(connected) {
         if (connected) while (true) { client.send("INFO?"); delay(30_000) }
     }
@@ -153,9 +158,6 @@ fun BoothScreen(
             }
         }
     }
-    LaunchedEffect(shareResult) {
-        if (shareResult != null) { delay(3000); shareResult = null }
-    }
     LaunchedEffect(banner) {
         if (banner != null) { delay(3000); banner = null }
     }
@@ -168,7 +170,7 @@ fun BoothScreen(
 
     // telecomando Bluetooth a un tasto (singola / doppia / tripla / quadrupla / lunga)
     val remoteHandler: (RemoteGesture) -> Unit = handler@{ g ->
-        if (showSettings || processing || sharing) return@handler
+        if (showSettings || showPin || processing) return@handler
         fun ack() { if (local.sound) tone?.startTone(ToneGenerator.TONE_PROP_ACK, 120) }
         // QR a schermo: qualsiasi pressione lo chiude
         if (qr != null) { qr = null; return@handler }
@@ -189,7 +191,7 @@ fun BoothScreen(
                 if (g == RemoteGesture.SINGLE) { client.send("SAVE"); ack() }                // Salva
                 else if (g == RemoteGesture.DOUBLE) {                                       // Rifai
                     EventLog.add("DEDICA_SCARTATA"); client.send("DISCARD"); ack()
-                }
+                } else { pendingQr = true; client.send("SAVE"); ack() }                      // Condividi (salva + QR)
             }
             return@handler
         }
@@ -246,18 +248,14 @@ fun BoothScreen(
                     .padding(horizontal = 28.dp, vertical = 10.dp))
         }
 
-        // tasto impostazioni
+        // impostazioni: nessun tasto visibile. Pressione lunga sull'angolo in alto a destra + codice a 6 cifre.
         if (!recording && !starting && !processing && countdown == 0) {
             Box(
-                Modifier.align(Alignment.TopEnd).padding(20.dp).size(56.dp).clip(CircleShape)
-                    .background(UiDark)
-                    .clickable { showLegend = false; showSettings = true; client.send("INFO?") },
-                contentAlignment = Alignment.Center,
-            ) {
-                androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(R.drawable.ic_gear), null, tint = Color.White, modifier = Modifier.size(28.dp))
-            }
+                Modifier.align(Alignment.TopEnd).padding(20.dp).size(72.dp)
+                    .pointerInput(Unit) { detectTapGestures(onLongPress = { showLegend = false; showPin = true }) },
+            )
             Box(
-                Modifier.align(Alignment.TopEnd).padding(top = 20.dp, end = 92.dp).size(56.dp).clip(CircleShape)
+                Modifier.align(Alignment.TopEnd).padding(top = 20.dp, end = 104.dp).size(56.dp).clip(CircleShape)
                     .background(UiDark)
                     .clickable { qr = QrRequest(null) },
                 contentAlignment = Alignment.Center,
@@ -268,7 +266,7 @@ fun BoothScreen(
             // Tocca per mostrare la legenda dei gesti, tocca di nuovo per nasconderla.
             if (local.remoteDevice.isNotEmpty()) {
                 Box(
-                    Modifier.align(Alignment.TopEnd).padding(top = 20.dp, end = 164.dp).size(56.dp).clip(CircleShape)
+                    Modifier.align(Alignment.TopEnd).padding(top = 20.dp, end = 176.dp).size(56.dp).clip(CircleShape)
                         .background(
                             when {
                                 showLegend -> Color(0xFFFFE082)
@@ -296,10 +294,11 @@ fun BoothScreen(
                     if (hasTake) {
                         if (takeSaved) {
                             add("1 pressione" to "Nuova")
-                            add("Lunga · 3 · 4" to "QR")
+                            add("Lunga · 3 · 4" to "Condividi")
                         } else {
                             add("1 pressione" to "Salva")
                             add("2 pressioni" to "Rifai")
+                            add("Lunga · 3 · 4" to "Condividi")
                         }
                     } else {
                         add("1 pressione" to "REC video")
@@ -413,18 +412,13 @@ fun BoothScreen(
                 cacheKey = takeFile,
                 saved = takeSaved,
                 savedName = savedName,
-                sharing = sharing,
                 onRedo = { EventLog.add("DEDICA_SCARTATA"); client.send("DISCARD") },
-                onQr = { if (savedName != null) qr = QrRequest("$base/h/$savedName") },
                 onSave = { client.send("SAVE") },
                 onShare = {
-                    shareResult = null
-                    shareProgress = 0f
-                    onShare(
-                        "/take/$takeFile", savedName ?: (if (takeFile.endsWith(".jpg")) "dedica.jpg" else "dedica.mp4"),
-                        { p -> shareProgress = p },
-                        { ok -> shareProgress = null; shareResult = ok; EventLog.add(if (ok) "CONDIVISA" else "CONDIVISIONE_FALLITA") },
-                    )
+                    // Condividi = QR, senza uscire dal kiosk
+                    EventLog.add("CONDIVISA")
+                    if (takeSaved && savedName != null) qr = QrRequest("$base/h/$savedName")
+                    else { pendingQr = true; client.send("SAVE") }
                 },
                 modifier = Modifier.align(Alignment.BottomEnd).padding(24.dp),
             )
@@ -478,27 +472,15 @@ fun BoothScreen(
                     path = "/h/${v.name}",
                     cacheKey = "h_${v.time}_${v.name}",
                     name = v.name,
-                    sharing = sharing,
                     onClose = { viewing = null },
-                    onQr = { qr = QrRequest("$base/h/${v.name}") },
-                    onDelete = { EventLog.add("DEDICA_ELIMINATA", v.name); client.send("DEL:${v.name}"); viewing = null },
-                    onShare = {
-                        shareResult = null
-                        shareProgress = 0f
-                        onShare(
-                            "/h/${v.name}", v.name,
-                            { p -> shareProgress = p },
-                            { ok -> shareProgress = null; shareResult = ok; EventLog.add(if (ok) "CONDIVISA" else "CONDIVISIONE_FALLITA") },
-                        )
-                    },
+                    onShare = { EventLog.add("CONDIVISA", v.name); qr = QrRequest("$base/h/${v.name}") },
                     modifier = Modifier.align(Alignment.BottomEnd).padding(24.dp),
                 )
             }
         }
 
-        // stato del trasferimento verso il tablet
-        if (shareProgress != null || shareResult != null) {
-            ShareStatus(shareProgress, shareResult, Modifier.align(Alignment.TopCenter).padding(top = 96.dp))
+        if (showPin) {
+            PinOverlay(dashCfg.key, onOk = { showPin = false; showSettings = true; client.send("INFO?") }, onCancel = { showPin = false })
         }
 
         if (showSettings) {

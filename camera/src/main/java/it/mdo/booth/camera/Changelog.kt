@@ -21,6 +21,11 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(24, "1.19", "Booth a prova di ospite", listOf(
+            "Tablet: Condividi apre solo il QR, impostazioni dietro codice, tasti per gli ospiti ridotti",
+            "Tablet: notifica dashcam che dice sempre la verità",
+            "Controllo: nuovo interruttore Blocco FISSO nelle impostazioni del telefono camera",
+        )),
         Entry(23, "1.18", "Nuovo look e aggiornamenti pronti", listOf(
             "Aggiornamenti scaricati da soli in background: arriva la notifica \"Aggiornamento pronto\" e basta toccare Installa",
             "Scheda del telecomando ridisegnata, con stato collegato e azioni ben leggibili",
