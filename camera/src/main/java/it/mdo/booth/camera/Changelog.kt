@@ -21,6 +21,10 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(26, "1.21", "Notifiche di aggiornamento ad app chiusa", listOf(
+            "Il controllo delle nuove versioni ora funziona anche quando l'app è chiusa (ogni 3 ore circa, anche dopo il riavvio)",
+            "Se non arriva nulla, nelle impostazioni Android dell'app togli le restrizioni batteria (su Xiaomi anche \"Avvio automatico\")",
+        )),
         Entry(24, "1.19", "Booth a prova di ospite", listOf(
             "Tablet: Condividi apre solo il QR, impostazioni dietro codice, tasti per gli ospiti ridotti",
             "Tablet: notifica dashcam che dice sempre la verità",

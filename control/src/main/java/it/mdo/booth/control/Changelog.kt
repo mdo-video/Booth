@@ -21,6 +21,10 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(26, "1.21", "Notifiche di aggiornamento ad app chiusa", listOf(
+            "Il controllo delle nuove versioni ora funziona anche quando l'app è chiusa (ogni 3 ore circa, anche dopo il riavvio)",
+            "Se non arriva nulla, nelle impostazioni Android dell'app togli le restrizioni batteria (su Xiaomi anche \"Avvio automatico\")",
+        )),
         Entry(25, "1.20", "Sblocco remoto", listOf(
             "Dall'app Controllo: Impostazioni, Sblocca il tablet. Sul tablet si aprono le impostazioni senza digitare il codice",
             "Lo sblocco remoto si vede nel registro eventi",

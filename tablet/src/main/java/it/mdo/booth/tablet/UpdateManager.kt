@@ -52,8 +52,8 @@ class UpdateManager(
 
     fun installedName(): String = ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "?"
 
-    fun check() {
-        if (status.value.busy) return
+    fun check(onDone: () -> Unit = {}) {
+        if (status.value.busy) { onDone(); return }
         set(Status("Controllo aggiornamenti…", busy = true))
         thread {
             val f = try { fetch() } catch (e: Exception) { null }
@@ -74,6 +74,7 @@ class UpdateManager(
                 cleanup()
                 set(Status("Aggiornata: versione ${installedName()}"))
             }
+            onDone()
         }
     }
 
@@ -114,6 +115,7 @@ class UpdateManager(
 
     /** Controlla da solo ogni 6 ore (la prima volta dopo 1 minuto), così la notifica arriva anche a app aperta a lungo. */
     fun startAutoCheck() {
+        UpdateJobService.schedule(ctx.applicationContext)
         if (autoStarted) return
         autoStarted = true
         thread(isDaemon = true) {
