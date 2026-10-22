@@ -54,6 +54,21 @@ fun DashSettings(cfg: DashConfig) {
     Label("Codice per l'app di controllo")
     Text(cfg.key, color = Color.White, fontSize = 28.sp)
 
+    Section("PIN DEL TABLET")
+    var pinState by remember { mutableStateOf(cfg.adminPin) }
+    Text(
+        when (pinState) {
+            "" -> "Da scegliere: lo chiede al prossimo tocco lungo sull'ingranaggio"
+            "-" -> "Nessun PIN: le impostazioni si aprono subito"
+            else -> "PIN attivo (${pinState.length} cifre)"
+        },
+        color = Color.LightGray, fontSize = 16.sp,
+    )
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Chip("Cambia PIN", false) { cfg.adminPin = ""; pinState = "" }
+        if (pinState != "-") Chip("Togli PIN", false) { cfg.adminPin = "-"; pinState = "-" }
+    }
+
     Section("AGGIORNAMENTI")
     val upd = DashState.updates
     if (upd != null) {

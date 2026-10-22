@@ -21,6 +21,11 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(25, "1.20", "Sblocco remoto", listOf(
+            "Dall'app Controllo: Impostazioni, Sblocca il tablet. Sul tablet si aprono le impostazioni senza digitare il codice",
+            "Lo sblocco remoto si vede nel registro eventi",
+            "PIN a scelta: la prima volta che tocchi l'ingranaggio il tablet ti fa scegliere un PIN da 4 a 6 cifre (o nessun PIN). Si cambia o si toglie dalle impostazioni, voce PIN DEL TABLET",
+        )),
         Entry(24, "1.19", "Booth a prova di ospite", listOf(
             "Tablet: Condividi apre solo il QR, impostazioni dietro codice, tasti per gli ospiti ridotti",
             "Tablet: notifica dashcam che dice sempre la verità",

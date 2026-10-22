@@ -98,6 +98,12 @@ class DashServer(
                     val ok = runCatching { applyConfig(JSONObject(body)) }.isSuccess
                     call.respondText(if (ok) "OK" else "ERR")
                 }
+                post("/unlock") {
+                    if (!call.authed()) return@post
+                    EventLog.add("SBLOCCO_REMOTO")
+                    DashState.unlockAt.value = System.currentTimeMillis()
+                    call.respondText("OK")
+                }
                 post("/update/check") {
                     if (!call.authed()) return@post
                     DashState.updates?.check()

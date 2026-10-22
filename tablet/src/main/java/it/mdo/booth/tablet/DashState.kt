@@ -21,6 +21,9 @@ object DashState {
     @Volatile var client: BoothClient? = null
     @Volatile var frames: FrameStore? = null
     @Volatile var kioskHook: ((Boolean) -> Unit)? = null
+
+    /** Sblocco remoto: l'app Controllo chiede di aprire le impostazioni (orario dell'ultima richiesta). */
+    val unlockAt = kotlinx.coroutines.flow.MutableStateFlow(0L)
 }
 
 /** Impostazioni della dashcam (salvate sul tablet, modificabili anche dall'app di controllo). */
@@ -51,6 +54,10 @@ class DashConfig(ctx: Context) {
     var backFailed: Boolean
         get() = p.getBoolean("backFailed", false)
         set(v) { p.edit().putBoolean("backFailed", v).apply() }
+    /** PIN scelto per aprire le impostazioni dal tablet: "" = da scegliere, "-" = nessun PIN */
+    var adminPin: String
+        get() = p.getString("adminPin", "") ?: ""
+        set(v) { p.edit().putString("adminPin", v).apply() }
     /** codice a 6 cifre che l'app di controllo deve conoscere */
     val key: String
         get() {

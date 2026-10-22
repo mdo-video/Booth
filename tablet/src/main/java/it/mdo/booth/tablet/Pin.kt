@@ -33,13 +33,23 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
 /**
- * Tastierino per aprire le impostazioni dal tablet: stesso codice a 6 cifre dell'app Controllo.
- * Dopo 5 errori si blocca per 30 secondi.
+ * Tastierino per aprire le impostazioni dal tablet.
+ * - expected vuoto: prima volta, si sceglie un PIN da 4 a 6 cifre (o "Senza PIN").
+ * - altrimenti si digita il PIN scelto. Dopo 5 errori si blocca per 30 secondi.
  */
 @Composable
-fun PinOverlay(expected: String, onOk: () -> Unit, onCancel: () -> Unit) {
+fun PinOverlay(
+    expected: String,
+    onOk: () -> Unit,
+    onCreate: (String) -> Unit,
+    onNoPin: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    val create = expected.isEmpty()
     var entered by remember { mutableStateOf("") }
+    var first by remember { mutableStateOf<String?>(null) }
     var wrong by remember { mutableStateOf(false) }
+    var msg by remember { mutableStateOf("") }
     var fails by remember { mutableIntStateOf(0) }
     var lockedFor by remember { mutableIntStateOf(0) }
 
@@ -47,24 +57,40 @@ fun PinOverlay(expected: String, onOk: () -> Unit, onCancel: () -> Unit) {
         if (lockedFor > 0) { delay(1000); lockedFor-- }
     }
     LaunchedEffect(wrong) {
-        if (wrong) { delay(700); wrong = false }
+        if (wrong) { delay(900); wrong = false }
     }
     // si chiude da solo se nessuno tocca niente
-    LaunchedEffect(entered, wrong) { delay(30_000); onCancel() }
+    LaunchedEffect(entered, wrong, first) { delay(30_000); onCancel() }
 
-    fun press(d: String) {
+    fun fail(text: String) {
+        entered = ""
+        msg = text
+        wrong = true
+    }
+
+    fun submit() {
         if (lockedFor > 0 || wrong) return
-        val next = (entered + d).take(6)
-        entered = next
-        if (next.length == 6) {
-            if (next == expected) onOk()
+        if (create) {
+            when {
+                entered.length < 4 -> fail("Almeno 4 cifre")
+                first == null -> { first = entered; entered = "" }
+                entered == first -> onCreate(entered)
+                else -> { first = null; fail("Non coincidono, riprova") }
+            }
+        } else {
+            if (entered == expected) onOk()
             else {
                 fails++
-                entered = ""
-                wrong = true
+                fail("Codice errato")
                 if (fails >= 5) { fails = 0; lockedFor = 30 }
             }
         }
+    }
+
+    fun press(d: String) {
+        if (lockedFor > 0 || wrong) return
+        entered = (entered + d).take(6)
+        if (!create && entered.length == expected.length) submit()
     }
 
     Box(
@@ -79,10 +105,17 @@ fun PinOverlay(expected: String, onOk: () -> Unit, onCancel: () -> Unit) {
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("Codice", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(
+                when {
+                    !create -> "Codice"
+                    first == null -> "Scegli un PIN (4-6 cifre)"
+                    else -> "Ripeti il PIN"
+                },
+                color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold,
+            )
             Spacer(Modifier.height(14.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                repeat(6) { i ->
+                repeat(if (create) 6 else expected.length) { i ->
                     Box(
                         Modifier.size(18.dp).clip(CircleShape).background(
                             when {
@@ -98,7 +131,7 @@ fun PinOverlay(expected: String, onOk: () -> Unit, onCancel: () -> Unit) {
             Text(
                 when {
                     lockedFor > 0 -> "Troppi tentativi: attendi ${lockedFor}s"
-                    wrong -> "Codice errato"
+                    wrong -> msg
                     else -> " "
                 },
                 color = Color(0xFFEF9A9A), fontSize = 14.sp,
@@ -114,7 +147,18 @@ fun PinOverlay(expected: String, onOk: () -> Unit, onCancel: () -> Unit) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     PinKey("⌫") { if (lockedFor == 0) entered = entered.dropLast(1) }
                     PinKey("0") { press("0") }
-                    PinKey("✕") { onCancel() }
+                    PinKey(if (create) "OK" else "✕") { if (create) submit() else onCancel() }
+                }
+            }
+            Spacer(Modifier.height(14.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
+                if (create) {
+                    Text("Annulla", color = Color(0xFFB9A8C9), fontSize = 16.sp,
+                        modifier = Modifier.clickable { onCancel() }.padding(8.dp))
+                    if (first == null) {
+                        Text("Senza PIN", color = Color(0xFFB9A8C9), fontSize = 16.sp,
+                            modifier = Modifier.clickable { onNoPin() }.padding(8.dp))
+                    }
                 }
             }
         }

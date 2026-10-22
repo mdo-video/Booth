@@ -132,6 +132,7 @@ private fun eventText(e: String): String = when (e) {
     "DASH_STOP" -> "⏹ Dashcam fermata"
     "DASH_ERRORE" -> "⚠ Errore dashcam"
     "DASH_CONFIG" -> "⚙ Impostazioni dashcam cambiate"
+    "SBLOCCO_REMOTO" -> "🔓 Tablet sbloccato da Controllo"
     "IMPOSTAZIONI" -> "⚙ Impostazioni cambiate da remoto"
     "TABLET_CADUTO" -> "🚨 Il tablet è caduto"
     "TABLET_URTO" -> "💥 Il tablet ha preso un urto forte"
@@ -455,6 +456,7 @@ private fun SettingsTab(api: Api, upd: UpdateManager) {
     val mine by upd.status.collectAsState()
     val field = TextStyle(color = Color.White, fontSize = 18.sp)
 
+    var unlockSent by remember { mutableStateOf(0L) }
     fun send(j: JSONObject) = scope.launch { api.postSettings(j) }
     fun sendPhone(k: String, v: Any) = send(JSONObject().put("phone", JSONObject().put(k, v)))
     fun sendTablet(k: String, v: Any) = send(JSONObject().put("tablet", JSONObject().put(k, v)))
@@ -633,7 +635,13 @@ private fun SettingsTab(api: Api, upd: UpdateManager) {
                         }
                     }
                     SwitchLine("Kiosk (blocca le altre app)", tab.optBoolean("kiosk")) { sendTablet("kiosk", it) }
-                    Note("Sul tablet le impostazioni si aprono con pressione lunga sull'angolo in alto a destra e il codice a 6 cifre.")
+                    Row {
+                        Chip("Sblocca il tablet (apri impostazioni)", false) {
+                            scope.launch { api.post("/unlock"); unlockSent = System.currentTimeMillis() }
+                        }
+                    }
+                    if (System.currentTimeMillis() - unlockSent < 4000) Note("Richiesta inviata: sul tablet si aprono le impostazioni.")
+                    Note("Sul tablet le impostazioni si aprono con pressione lunga sull'angolo in alto a destra e il PIN scelto sul tablet (o con il pulsante qui sopra).")
                 }
             }
         } else {

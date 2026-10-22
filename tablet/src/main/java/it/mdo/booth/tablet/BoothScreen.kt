@@ -166,6 +166,14 @@ fun BoothScreen(
     LaunchedEffect(info) { DashState.phoneInfo = info?.toString() ?: "" }
     LaunchedEffect(state) { EventLog.stateChange(state) }
     LaunchedEffect(qr) { if (qr != null) EventLog.add("QR") }
+    // sblocco remoto dall'app Controllo: apre le impostazioni senza codice (solo se arriva adesso)
+    val unlockAt by DashState.unlockAt.collectAsState()
+    LaunchedEffect(unlockAt) {
+        if (unlockAt > 0 && System.currentTimeMillis() - unlockAt < 5000 && !processing) {
+            starting = false; viewing = null; qr = null; showLegend = false
+            showPin = false; showSettings = true; client.send("INFO?")
+        }
+    }
     LaunchedEffect(recording, starting) { if (recording || starting) showLegend = false }
 
     // telecomando Bluetooth a un tasto (singola / doppia / tripla / quadrupla / lunga)
@@ -252,7 +260,12 @@ fun BoothScreen(
         if (!recording && !starting && !processing && countdown == 0) {
             Box(
                 Modifier.align(Alignment.TopEnd).padding(20.dp).size(72.dp)
-                    .pointerInput(Unit) { detectTapGestures(onLongPress = { showLegend = false; showPin = true }) },
+                    .pointerInput(Unit) {
+                        detectTapGestures(onLongPress = {
+                            showLegend = false
+                            if (dashCfg.adminPin == "-") { showSettings = true; client.send("INFO?") } else showPin = true
+                        })
+                    },
             )
             Box(
                 Modifier.align(Alignment.TopEnd).padding(top = 20.dp, end = 104.dp).size(56.dp).clip(CircleShape)
@@ -480,7 +493,13 @@ fun BoothScreen(
         }
 
         if (showPin) {
-            PinOverlay(dashCfg.key, onOk = { showPin = false; showSettings = true; client.send("INFO?") }, onCancel = { showPin = false })
+            PinOverlay(
+                expected = dashCfg.adminPin.let { if (it == "-") "" else it },
+                onOk = { showPin = false; showSettings = true; client.send("INFO?") },
+                onCreate = { dashCfg.adminPin = it; showPin = false; showSettings = true; client.send("INFO?") },
+                onNoPin = { dashCfg.adminPin = "-"; showPin = false; showSettings = true; client.send("INFO?") },
+                onCancel = { showPin = false },
+            )
         }
 
         if (showSettings) {
