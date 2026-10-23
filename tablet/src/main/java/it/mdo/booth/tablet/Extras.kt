@@ -1,5 +1,6 @@
 package it.mdo.booth.tablet
 
+import androidx.compose.foundation.border
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.painterResource
 import androidx.compose.material3.Icon
@@ -80,18 +81,30 @@ fun StatusBadge(info: JSONObject, modifier: Modifier = Modifier) {
 fun LivePreview(client: BoothClient, local: LocalSettings, overlay: ImageBitmap? = null) {
     val frame by client.frame.collectAsState()
     val pinfo by client.info.collectAsState()
-    val fid = pinfo?.optString("filter", "none") ?: "none"
+    val fid = FilterState.override ?: (pinfo?.optString("filter", "none") ?: "none")
     frame?.let { bmp ->
         val img = remember(bmp) { bmp.asImageBitmap() }
         val ar = bmp.width.toFloat() / bmp.height.toFloat()
         val (top, bottom, side) = when (local.borderMode) {
             0 -> Triple(0.dp, 0.dp, 0.dp)
             1 -> Triple(24.dp, 24.dp, 24.dp)
-            else -> Triple(96.dp, 232.dp, 0.dp)
+            else -> Triple(104.dp, 176.dp, 168.dp)
         }
         Box(Modifier.fillMaxSize().padding(start = side, end = side, top = top, bottom = bottom), contentAlignment = Alignment.Center) {
-            val shape = RoundedCornerShape(if (local.borderMode == 0) 0.dp else 20.dp)
-            Box(Modifier.aspectRatio(ar).then(if (local.borderMode == 0) Modifier else Modifier.shadow(12.dp, shape)).clip(shape)) {
+            val shape = RoundedCornerShape(if (local.borderMode == 0) 0.dp else if (local.borderMode == 2) 28.dp else 20.dp)
+            val glow = Color(local.borderColor)
+            Box(
+                Modifier.aspectRatio(ar)
+                    .then(
+                        when (local.borderMode) {
+                            0 -> Modifier
+                            2 -> Modifier.shadow(24.dp, shape, ambientColor = glow, spotColor = glow)
+                            else -> Modifier.shadow(12.dp, shape)
+                        }
+                    )
+                    .clip(shape)
+                    .then(if (local.borderMode == 2) Modifier.border(4.dp, glow, shape) else Modifier)
+            ) {
                 Image(
                     bitmap = img,
                     contentDescription = null,

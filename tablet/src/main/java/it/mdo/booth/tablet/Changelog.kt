@@ -21,6 +21,11 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(28, "1.23", "Nuovo layout e effetti a scorrimento", listOf(
+            "Schermata principale rifatta: pellicola a sinistra, titolo e pulsanti in alto, tasti Torcia, Flash, Cornice e Blocca a destra, interruttore Video/Foto accanto a REC",
+            "Gli effetti si cambiano scorrendo il dito sull'anteprima, come le storie di Instagram, con una piccola indicazione",
+            "Impostazioni: ora è un pulsante in alto a destra (chiede il PIN)",
+        )),
         Entry(27, "1.22", "Effetti, inglese e ritorno automatico", listOf(
             "Effetti stile Instagram su foto e video (B&N, Seppia, Vintage, Caldo, Freddo, Vivido): gli ospiti li scelgono dalla fila sotto l'anteprima e li vedono subito",
             "Testi per gli ospiti anche in inglese: impostazioni, Lingua per gli ospiti",

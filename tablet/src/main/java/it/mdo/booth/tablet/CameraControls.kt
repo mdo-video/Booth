@@ -45,7 +45,7 @@ fun CameraControls(client: BoothClient, info: JSONObject, modifier: Modifier = M
     ) {
         if (info.optBoolean("hasTorch")) {
             val on = info.optBoolean("torch")
-            ControlButton(R.drawable.ic_torch, "TORCIA", on) {
+            ControlButton(R.drawable.ic_torch, Lang.t("TORCIA", "TORCH"), on) {
                 client.set(JSONObject().put("torch", !on))
             }
         }
@@ -54,6 +54,16 @@ fun CameraControls(client: BoothClient, info: JSONObject, modifier: Modifier = M
             ControlButton(R.drawable.ic_bolt, "FLASH", f) {
                 client.set(JSONObject().put("flash", !f))
             }
+        }
+        if (info.optBoolean("hasFrame")) {
+            val fr = info.optBoolean("frame")
+            ControlButton(R.drawable.ic_frame, Lang.t("CORNICE", "FRAME"), fr) {
+                client.set(JSONObject().put("frame", !fr))
+            }
+        }
+        val lk = info.optBoolean("lock")
+        ControlButton(R.drawable.ic_lock, Lang.t("BLOCCA", "LOCK"), lk) {
+            client.set(JSONObject().put("lock", !lk))
         }
     }
 }

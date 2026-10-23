@@ -237,13 +237,46 @@ fun BoothScreen(
     val onRemote by rememberUpdatedState(remoteHandler)
     LaunchedEffect(Unit) { RemoteBus.gestures.collect { onRemote(it) } }
 
-    val borderBg = Color(local.borderColor)
+    val borderBg = if (local.borderMode == 2) Color(0xFF14101A) else Color(local.borderColor)
     val onBorder = if (borderBg.luminance() > 0.5f) Color.Black else Color.White
     val wide = local.borderMode == 2            // bordo largo: i tasti stanno fuori dall'immagine
-    val zoneTop = if (wide) 96.dp else 96.dp
-    val zoneBottom = if (wide) 232.dp else 96.dp
+    val zoneTop = if (wide) 104.dp else 96.dp
+    val zoneBottom = if (wide) 176.dp else 96.dp
+    var photoMode by remember { mutableStateOf(false) }
+    var filterToast by remember { mutableStateOf<String?>(null) }
+    val shownFilter = FilterState.override ?: (info?.optString("filter", "none") ?: "none")
+    val shownFilterState by rememberUpdatedState(shownFilter)
+    LaunchedEffect(filterToast) { if (filterToast != null) { delay(1400); filterToast = null } }
+    LaunchedEffect(FilterState.override) { if (FilterState.override != null) { delay(2500); FilterState.override = null } }
     Box(Modifier.fillMaxSize().background(borderBg)) {
         LivePreview(client, local, frameOverlay)
+        // scorrendo il dito sull'anteprima si cambia effetto, come le storie di Instagram
+        val swipeOn = local.filtersUi && connected && state == "READY" && !starting && countdown == 0 &&
+            !hasTake && !processing && viewing == null && !recording && !showSettings && !showPin && qr == null
+        if (swipeOn) {
+            Box(
+                Modifier.fillMaxSize().padding(previewPadding(local.borderMode))
+                    .pointerInput(Unit) {
+                        var acc = 0f
+                        androidx.compose.foundation.gestures.detectHorizontalDragGestures(
+                            onDragStart = { acc = 0f },
+                            onDragEnd = {
+                                if (kotlin.math.abs(acc) > 100f) {
+                                    val ids = Filters.all.map { it.id }
+                                    val i = ids.indexOf(shownFilterState).coerceAtLeast(0)
+                                    val n = if (acc < 0) (i + 1) % ids.size else (i - 1 + ids.size) % ids.size
+                                    FilterState.override = ids[n]
+                                    filterToast = Filters.label(Filters.get(ids[n]))
+                                    client.set(JSONObject().put("filter", ids[n]))
+                                }
+                            },
+                            onHorizontalDrag = { change, dragAmount -> change.consume(); acc += dragAmount },
+                        )
+                    },
+            ) {
+                FilterHint(shownFilter, filterToast, Modifier.align(Alignment.BottomCenter).padding(bottom = 14.dp))
+            }
+        }
         if (!connected) {
             Text(Lang.t("Cerco il telefono…", "Looking for the phone…"), color = onBorder, fontSize = 28.sp, modifier = Modifier.align(Alignment.Center))
         }
@@ -270,8 +303,22 @@ fun BoothScreen(
                     .padding(horizontal = 28.dp, vertical = 10.dp))
         }
 
-        // impostazioni: nessun tasto visibile. Pressione lunga sull'angolo in alto a destra + codice a 6 cifre.
-        if (!recording && !starting && !processing && countdown == 0) {
+        // in alto a destra: telecomando, Wi-Fi/QR, Impostazioni (con PIN)
+        if (wide && !recording && !starting && !processing && countdown == 0) {
+            TopPills(
+                remotePaired = local.remoteDevice.isNotEmpty(),
+                remoteConnected = remoteConnected,
+                onRemote = { showLegend = !showLegend },
+                onWifi = { qr = QrRequest(null) },
+                onSettings = {
+                    showLegend = false
+                    if (dashCfg.adminPin == "-") { showSettings = true; client.send("INFO?") } else showPin = true
+                },
+                modifier = Modifier.align(Alignment.TopEnd).padding(top = 36.dp, end = 168.dp),
+            )
+        }
+        // altri bordi: nessun tasto visibile. Pressione lunga sull'angolo in alto a destra + PIN.
+        if (!wide && !recording && !starting && !processing && countdown == 0) {
             Box(
                 Modifier.align(Alignment.TopEnd).padding(20.dp).size(72.dp)
                     .pointerInput(Unit) {
@@ -387,62 +434,46 @@ fun BoothScreen(
             }
         }
 
-        // tasto REC (nascosto mentre c'è un'anteprima da valutare)
+        // comandi in basso: interruttore VIDEO/FOTO + tasto REC
         if (!hasTake && !processing) {
-            Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 40.dp), contentAlignment = Alignment.Center) {
-                if (recording) {
-                    CircularProgressIndicator(
-                        progress = { remaining / maxSec.toFloat() },
-                        modifier = Modifier.size(200.dp),
-                        color = Color(0xFFE53935),
-                        strokeWidth = 8.dp,
-                    )
-                }
-                val enabled = connected && !starting
-                if (!recording) {
-                    Box(Modifier.size(168.dp).border(4.dp, Color.White.copy(alpha = 0.9f), CircleShape))
-                }
-                Box(
-                    Modifier.size(if (recording) 160.dp else 136.dp).clip(CircleShape)
-                        .background(if (enabled) Color(0xFFFF2D3D) else Color.Gray)
-                        .clickable(enabled = enabled) {
-                            if (recording) client.send("STOP") else { shotKind = "video"; starting = true }
-                        },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(if (recording) "STOP" else "REC", color = Color.White, fontSize = if (recording) 36.sp else 32.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-
-        // tasto FOTO
-        if (!hasTake && !processing && connected && !recording && !starting && countdown == 0 && info?.optBoolean("hasPhoto") == true) {
-            Column(
-                Modifier.align(Alignment.BottomCenter).offset(x = 190.dp).padding(bottom = 56.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+            val photoOk = info?.optBoolean("hasPhoto") == true
+            val isPhoto = photoMode && photoOk
+            Row(
+                Modifier.align(Alignment.BottomCenter).padding(bottom = 28.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(24.dp),
             ) {
-                Box(
-                    Modifier.size(84.dp).clip(CircleShape).background(Color.White)
-                        .clickable { shotKind = "photo"; starting = true },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(R.drawable.ic_camera), null,
-                        tint = Color(0xFF3A0A33), modifier = Modifier.size(38.dp))
+                if (!recording && !starting && countdown == 0 && photoOk) {
+                    ModeToggle(isPhoto, { photoMode = it })
                 }
-                Text(Lang.t("FOTO", "PHOTO"), color = onBorder, fontSize = 13.sp, letterSpacing = 1.sp, fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(top = 6.dp))
+                Box(contentAlignment = Alignment.Center) {
+                    if (recording) {
+                        CircularProgressIndicator(
+                            progress = { remaining / maxSec.toFloat() },
+                            modifier = Modifier.size(124.dp),
+                            color = Color(0xFFE53935),
+                            strokeWidth = 6.dp,
+                        )
+                    }
+                    val enabled = connected && !starting
+                    if (!recording) {
+                        Box(Modifier.size(108.dp).border(4.dp, Color.White.copy(alpha = 0.9f), CircleShape))
+                    }
+                    Box(
+                        Modifier.size(if (recording) 100.dp else 88.dp).clip(CircleShape)
+                            .background(if (enabled) Color(0xFFFF2D55) else Color.Gray)
+                            .clickable(enabled = enabled) {
+                                if (recording) client.send("STOP") else { shotKind = if (isPhoto) "photo" else "video"; starting = true }
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            if (recording) "STOP" else if (isPhoto) Lang.t("FOTO", "PHOTO") else "REC",
+                            color = Color.White, fontSize = if (recording) 26.sp else 22.sp, fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
             }
-        }
-
-        // effetti stile Instagram (foto e video)
-        if (local.filtersUi && connected && state == "READY" && !starting && countdown == 0 &&
-            !hasTake && !processing && viewing == null && !recording
-        ) {
-            FilterStrip(
-                current = info?.optString("filter", "none") ?: "none",
-                onPick = { client.set(JSONObject().put("filter", it)) },
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = if (wide) 244.dp else 320.dp),
-            )
         }
 
         // anteprima del video appena registrato
@@ -472,7 +503,7 @@ fun BoothScreen(
 
         // batteria e spazio del telefono
         if (connected) {
-            info?.let { StatusBadge(it, Modifier.align(Alignment.TopStart).padding(20.dp)) }
+            info?.let { StatusBadge(it, Modifier.align(if (wide) Alignment.BottomStart else Alignment.TopStart).padding(20.dp)) }
         }
 
         // messaggio d'attesa
@@ -484,10 +515,10 @@ fun BoothScreen(
                 color = if (wide) onBorder else Color.White,
                 fontSize = if (wide) 28.sp else 30.sp,
                 fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
+                textAlign = if (wide) TextAlign.Start else TextAlign.Center,
                 modifier = if (wide) {
-                    // bordo largo: il messaggio sta nella fascia in alto, fuori dall'immagine
-                    Modifier.align(Alignment.TopCenter).padding(top = 24.dp, start = 260.dp, end = 260.dp)
+                    // titolo in alto a sinistra, allineato all'anteprima
+                    Modifier.align(Alignment.TopStart).padding(top = 40.dp, start = 168.dp)
                 } else {
                     Modifier.align(Alignment.BottomCenter).padding(bottom = 240.dp)
                         .clip(RoundedCornerShape(24.dp)).background(Color(0x99000000))
