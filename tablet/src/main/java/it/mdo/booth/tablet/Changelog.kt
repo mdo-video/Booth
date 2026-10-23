@@ -21,6 +21,12 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(31, "1.26", "Impostazioni nascoste", listOf(
+            "Il pulsante Impostazioni non si vede più: si aprono tenendo premuto sul bordo fuori dall'anteprima (poi il PIN)",
+        )),
+        Entry(30, "1.25", "Effetti a scorrimento verticale", listOf(
+            "Gli effetti si cambiano scorrendo il dito in su e in giù sull'anteprima: l'indicazione sta sul lato sinistro, senza coprire la cornice",
+        )),
         Entry(28, "1.23", "Nuovo layout e effetti a scorrimento", listOf(
             "Schermata principale rifatta: pellicola a sinistra, titolo e pulsanti in alto, tasti Torcia, Flash, Cornice e Blocca a destra, interruttore Video/Foto accanto a REC",
             "Gli effetti si cambiano scorrendo il dito sull'anteprima, come le storie di Instagram, con una piccola indicazione",

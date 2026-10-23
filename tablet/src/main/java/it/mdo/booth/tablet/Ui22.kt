@@ -7,6 +7,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -50,14 +59,13 @@ private fun Pill(onClick: () -> Unit, content: @Composable RowScope.() -> Unit) 
     )
 }
 
-/** In alto a destra: telecomando (se associato), Wi-Fi/QR, Impostazioni. */
+/** In alto a destra: telecomando (se associato) e Wi-Fi/QR. Le impostazioni sono nascoste (pressione lunga sul bordo). */
 @Composable
 fun TopPills(
     remotePaired: Boolean,
     remoteConnected: Boolean,
     onRemote: () -> Unit,
     onWifi: () -> Unit,
-    onSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -74,39 +82,40 @@ fun TopPills(
         Pill(onWifi) {
             Icon(painterResource(R.drawable.ic_wifi), null, tint = Color.White, modifier = Modifier.size(20.dp))
         }
-        Pill(onSettings) {
-            Text(Lang.t("Impostazioni", "Settings"), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-        }
     }
 }
 
-/** Sull'anteprima: nome dell'effetto appena scelto, puntini e piccola indicazione "scorri". */
+/** Sul lato sinistro dell'anteprima: puntini verticali dell'effetto attivo e indicazione "scorri". */
 @Composable
-fun FilterHint(current: String, toast: String?, modifier: Modifier = Modifier) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (toast != null) {
-            Text(
-                toast, color = Color(0xFF14101A), fontSize = 24.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.clip(RoundedCornerShape(50)).background(Color(0xFFFFE83A))
-                    .padding(horizontal = 22.dp, vertical = 8.dp),
+fun FilterHint(current: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier.clip(RoundedCornerShape(28.dp)).background(Color(0x99000000))
+            .padding(horizontal = 10.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(Lang.t("Effetti", "Effects"), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Text("▲", color = Color.White, fontSize = 12.sp)
+        Filters.all.forEach { f ->
+            val sel = f.id == current
+            Box(
+                Modifier.size(if (sel) 10.dp else 6.dp).clip(CircleShape)
+                    .background(if (sel) Color(0xFFFFE83A) else Color(0x88FFFFFF))
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Filters.all.forEach { f ->
-                val sel = f.id == current
-                Box(
-                    Modifier.size(if (sel) 10.dp else 6.dp).clip(CircleShape)
-                        .background(if (sel) Color(0xFFFFE83A) else Color(0x88FFFFFF))
-                )
-            }
-        }
-        Text(
-            "‹   " + Lang.t("Scorri per gli effetti", "Swipe for effects") + "   ›",
-            color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.clip(RoundedCornerShape(50)).background(Color(0x99000000))
-                .padding(horizontal = 14.dp, vertical = 5.dp),
-        )
+        Text("▼", color = Color.White, fontSize = 12.sp)
+        Text(Lang.t("scorri", "swipe"), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
     }
+}
+
+/** Nome dell'effetto appena scelto, al centro dell'anteprima per un attimo. */
+@Composable
+fun FilterToast(name: String, modifier: Modifier = Modifier) {
+    Text(
+        name, color = Color(0xFF14101A), fontSize = 24.sp, fontWeight = FontWeight.Bold,
+        modifier = modifier.clip(RoundedCornerShape(50)).background(Color(0xFFFFE83A))
+            .padding(horizontal = 22.dp, vertical = 8.dp),
+    )
 }
 
 /** Interruttore VIDEO / FOTO accanto al tasto REC. */
@@ -129,4 +138,21 @@ private fun Seg(label: String, selected: Boolean, onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(horizontal = 26.dp, vertical = 14.dp),
     )
+}
+
+/** Zone invisibili sul bordo fuori dall'anteprima: tenendo premuto si aprono le impostazioni (PIN). */
+@Composable
+fun SettingsHotZones(pad: PaddingValues, onLongPress: () -> Unit, modifier: Modifier = Modifier) {
+    val top = pad.calculateTopPadding()
+    val bottom = pad.calculateBottomPadding()
+    val start = pad.calculateLeftPadding(LayoutDirection.Ltr)
+    val end = pad.calculateRightPadding(LayoutDirection.Ltr)
+    val action by rememberUpdatedState(onLongPress)
+    val zone = Modifier.pointerInput(Unit) { detectTapGestures(onLongPress = { action() }) }
+    Box(modifier.fillMaxSize()) {
+        Box(Modifier.align(Alignment.TopCenter).fillMaxWidth().height(top).then(zone))
+        Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(bottom).then(zone))
+        Box(Modifier.align(Alignment.CenterStart).fillMaxHeight().width(start).then(zone))
+        Box(Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(end).then(zone))
+    }
 }

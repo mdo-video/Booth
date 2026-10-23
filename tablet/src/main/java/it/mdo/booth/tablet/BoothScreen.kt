@@ -1,6 +1,6 @@
 package it.mdo.booth.tablet
 
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -250,6 +250,13 @@ fun BoothScreen(
     LaunchedEffect(filterToast) { if (filterToast != null) { delay(1400); filterToast = null } }
     LaunchedEffect(FilterState.override) { if (FilterState.override != null) { delay(2500); FilterState.override = null } }
     Box(Modifier.fillMaxSize().background(borderBg)) {
+        // impostazioni nascoste: pressione lunga sul bordo fuori dall'anteprima, poi il PIN
+        if (wide && !recording && !starting && !processing && countdown == 0) {
+            SettingsHotZones(previewPadding(local.borderMode), {
+                showLegend = false
+                if (dashCfg.adminPin == "-") { showSettings = true; client.send("INFO?") } else showPin = true
+            })
+        }
         LivePreview(client, local, frameOverlay)
         // scorrendo il dito sull'anteprima si cambia effetto, come le storie di Instagram
         val swipeOn = local.filtersUi && connected && state == "READY" && !starting && countdown == 0 &&
@@ -259,7 +266,7 @@ fun BoothScreen(
                 Modifier.fillMaxSize().padding(previewPadding(local.borderMode))
                     .pointerInput(Unit) {
                         var acc = 0f
-                        detectHorizontalDragGestures(
+                        detectVerticalDragGestures(
                             onDragStart = { acc = 0f },
                             onDragEnd = {
                                 if (kotlin.math.abs(acc) > 100f) {
@@ -271,11 +278,12 @@ fun BoothScreen(
                                     client.set(JSONObject().put("filter", ids[n]))
                                 }
                             },
-                            onHorizontalDrag = { change, dragAmount -> change.consume(); acc += dragAmount },
+                            onVerticalDrag = { change, dragAmount -> change.consume(); acc += dragAmount },
                         )
                     },
             ) {
-                FilterHint(shownFilter, filterToast, Modifier.align(Alignment.BottomCenter).padding(bottom = 14.dp))
+                FilterHint(shownFilter, Modifier.align(Alignment.CenterStart).padding(start = 14.dp))
+                filterToast?.let { FilterToast(it, Modifier.align(Alignment.Center)) }
             }
         }
         if (!connected) {
@@ -304,17 +312,13 @@ fun BoothScreen(
                     .padding(horizontal = 28.dp, vertical = 10.dp))
         }
 
-        // in alto a destra: telecomando, Wi-Fi/QR, Impostazioni (con PIN)
+        // in alto a destra: telecomando e Wi-Fi/QR
         if (wide && !recording && !starting && !processing && countdown == 0) {
             TopPills(
                 remotePaired = local.remoteDevice.isNotEmpty(),
                 remoteConnected = remoteConnected,
                 onRemote = { showLegend = !showLegend },
                 onWifi = { qr = QrRequest(null) },
-                onSettings = {
-                    showLegend = false
-                    if (dashCfg.adminPin == "-") { showSettings = true; client.send("INFO?") } else showPin = true
-                },
                 modifier = Modifier.align(Alignment.TopEnd).padding(top = 36.dp, end = 168.dp),
             )
         }
