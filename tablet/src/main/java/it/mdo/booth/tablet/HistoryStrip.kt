@@ -58,7 +58,7 @@ fun HistoryStrip(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item(key = "titolo") {
-            Text("ULTIMI", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
+            Text(Lang.t("ULTIMI", "LATEST"), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.5.sp)
         }
         items(list, key = { it.name }) { item ->
             HistoryThumb(client, item, item.name == selected) { onSelect(item) }
@@ -114,8 +114,8 @@ fun HistoryCard(
         Spacer(Modifier.height(8.dp))
         Text(name, color = Color.White, fontSize = 14.sp, modifier = Modifier.padding(bottom = 6.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CardButton("Chiudi", Color(0xFF3A3F47), Modifier.weight(1f), onClose)
-            CardButton("Condividi", Color(0xFF1565C0), Modifier.weight(1f), onShare)
+            CardButton(Lang.t("Chiudi", "Close"), Color(0xFF3A3F47), Modifier.weight(1f), onClose)
+            CardButton(Lang.t("Condividi", "Share"), Color(0xFF1565C0), Modifier.weight(1f), onShare)
         }
     }
 }

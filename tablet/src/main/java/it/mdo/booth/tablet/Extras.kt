@@ -79,6 +79,8 @@ fun StatusBadge(info: JSONObject, modifier: Modifier = Modifier) {
 @Composable
 fun LivePreview(client: BoothClient, local: LocalSettings, overlay: ImageBitmap? = null) {
     val frame by client.frame.collectAsState()
+    val pinfo by client.info.collectAsState()
+    val fid = pinfo?.optString("filter", "none") ?: "none"
     frame?.let { bmp ->
         val img = remember(bmp) { bmp.asImageBitmap() }
         val ar = bmp.width.toFloat() / bmp.height.toFloat()
@@ -95,6 +97,7 @@ fun LivePreview(client: BoothClient, local: LocalSettings, overlay: ImageBitmap?
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = if (local.mirror) -1f else 1f },
                     contentScale = ContentScale.FillBounds,
+                    colorFilter = Filters.colorFilter(fid),
                 )
                 if (overlay != null && ar >= 1f) {
                     Image(

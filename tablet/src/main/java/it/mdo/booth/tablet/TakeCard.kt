@@ -52,18 +52,18 @@ fun TakeCard(
         DownloadedMedia(client, path, cacheKey, Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(10.dp)))
         Spacer(Modifier.height(8.dp))
         if (saved) {
-            Text("Salvata ✓ ${savedName ?: ""}", color = Color(0xFF66BB6A), fontSize = 14.sp,
+            Text(Lang.t("Salvata ✓", "Saved ✓") + " ${savedName ?: ""}", color = Color(0xFF66BB6A), fontSize = 14.sp,
                 modifier = Modifier.padding(bottom = 6.dp))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (!saved) {
-                CardButton("Rifai", Color(0xFF3A3F47), Modifier.weight(1f), onRedo)
-                CardButton("Salva", Color(0xFF2E7D32), Modifier.weight(1f), onSave)
+                CardButton(Lang.t("Rifai", "Retake"), Color(0xFF3A3F47), Modifier.weight(1f), onRedo)
+                CardButton(Lang.t("Salva", "Save"), Color(0xFF2E7D32), Modifier.weight(1f), onSave)
             } else {
-                CardButton("Nuova", Color(0xFFE53935), Modifier.weight(1f), onRedo)
+                CardButton(Lang.t("Nuova", "New"), Color(0xFFE53935), Modifier.weight(1f), onRedo)
             }
             // Condividi salva (se serve) e mostra il QR: non si esce mai dal kiosk
-            CardButton("Condividi", Color(0xFF1565C0), Modifier.weight(1f), onShare)
+            CardButton(Lang.t("Condividi", "Share"), Color(0xFF1565C0), Modifier.weight(1f), onShare)
         }
     }
 }

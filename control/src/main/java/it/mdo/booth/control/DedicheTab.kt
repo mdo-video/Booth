@@ -291,7 +291,14 @@ fun DedicheTab(api: DedicheApi) {
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            items(api.items, key = { it.name }) { d ->
+            val groups = api.items.groupBy { it.name.substringBeforeLast('_', "") }
+            groups.forEach { (ev, list) ->
+            if (ev.isNotEmpty() && groups.size > 1) {
+                item(key = "ev_$ev", span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                    Text(ev, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
+                }
+            }
+            items(list, key = { it.name }) { d ->
                 DedicaCell(
                     api = api,
                     d = d,
@@ -310,6 +317,7 @@ fun DedicheTab(api: DedicheApi) {
                         }
                     },
                 )
+            }
             }
         }
 

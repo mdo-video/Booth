@@ -65,6 +65,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.effect.BitmapOverlay
+import androidx.media3.effect.RgbMatrix
 import androidx.media3.effect.OverlayEffect
 import androidx.media3.effect.TextureOverlay
 import androidx.media3.transformer.Composition
@@ -131,6 +132,7 @@ class CameraController(
     private var prefix = prefs.getString("prefix", "dedica") ?: "dedica"
     private var counter = prefs.getInt("counter", 0)
     private var flash = prefs.getBoolean("flash", true)      // flash (doppio LED) negli scatti
+    private var filter = prefs.getString("filter", "none") ?: "none"   // effetto colore su foto e video
     private var frameOn = prefs.getBoolean("frame", false)   // cornice su foto e video
     private var orientation = prefs.getString("orientation", "landscape") ?: "landscape"
     private val camManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
@@ -353,8 +355,39 @@ class CameraController(
 
         val out = Bitmap.createBitmap(cw, ch, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(out)
-        canvas.drawBitmap(upright, Rect(cx, cy, cx + cw, cy + ch), Rect(0, 0, cw, ch), null)
+        canvas.drawBitmap(upright, Rect(cx, cy, cx + cw, cy + ch), Rect(0, 0, cw, ch), Filters.paint(filter))
         canvas.drawBitmap(frame, null, Rect(0, 0, cw, ch), Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
+        val tmp = File(file.parentFile, file.name + ".tmp")
+        val ok = tmp.outputStream().use { out.compress(Bitmap.CompressFormat.JPEG, 95, it) }
+        out.recycle()
+        if (upright !== src) upright.recycle()
+        src.recycle()
+        if (!ok || !tmp.renameTo(file)) {
+            tmp.delete()
+            return "salvataggio foto"
+        }
+        return null
+    }
+
+    /** Foto con solo l'effetto colore (senza cornice): ruota secondo EXIF e salva. null = ok, altrimenti il motivo. */
+    private fun filterPhoto(file: File): String? {
+        val deg = when (ExifInterface(file.absolutePath).getAttributeInt(ExifInterface.TAG_ORIENTATION, 1)) {
+            6 -> 90f
+            3 -> 180f
+            8 -> 270f
+            else -> 0f
+        }
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(file.absolutePath, bounds)
+        var sample = 1
+        while (maxOf(bounds.outWidth, bounds.outHeight) / sample > 4096) sample *= 2
+        val src = BitmapFactory.decodeFile(file.absolutePath, BitmapFactory.Options().apply { inSampleSize = sample })
+            ?: return "foto non leggibile"
+        val upright = if (deg != 0f) {
+            Bitmap.createBitmap(src, 0, 0, src.width, src.height, Matrix().apply { postRotate(deg) }, true)
+        } else src
+        val out = Bitmap.createBitmap(upright.width, upright.height, Bitmap.Config.ARGB_8888)
+        Canvas(out).drawBitmap(upright, 0f, 0f, Filters.paint(filter))
         val tmp = File(file.parentFile, file.name + ".tmp")
         val ok = tmp.outputStream().use { out.compress(Bitmap.CompressFormat.JPEG, 95, it) }
         out.recycle()
@@ -369,14 +402,18 @@ class CameraController(
 
     private fun finishPhoto(file: File) {
         val fr = frameBmp
-        if (frameOn && fr != null) {
+        val useFrame = frameOn && fr != null
+        if (useFrame || filter != "none") {
             processing = true
             onState("PROCESSING:0")
             io.execute {
                 val err = try {
-                    compositePhoto(file, fr)
+                    var e = if (useFrame && fr != null) compositePhoto(file, fr) else filterPhoto(file)
+                    // la cornice non entra (foto verticale): resta almeno l'effetto
+                    if (e != null && useFrame && filter != "none") e = filterPhoto(file)
+                    e
                 } catch (t: Throwable) {
-                    "cornice non applicata"
+                    "effetto o cornice non applicati"
                 }
                 main.post {
                     if (err != null) onEvent("ERROR:$err")
@@ -414,27 +451,42 @@ class CameraController(
         }
     }
 
-    /** Video: ricodifica con la cornice sovrapposta (Media3 Transformer). Se fallisce resta il video senza cornice. */
+    /** Video: ricodifica con effetto colore e/o cornice (Media3 Transformer). Se fallisce resta il video originale. */
     @SuppressLint("UnsafeOptInUsageError")
-    private fun applyVideoFrame(src: File, frame: Bitmap) {
+    private fun applyVideoFrame(src: File, frameIn: Bitmap?) {
         val size = videoDisplaySize(src)
-        if (size == null || !sizeFitsFrame(size.first, size.second) ||
-            abs((size.first.toFloat() / size.second) / (frame.width.toFloat() / frame.height) - 1f) > 0.12f
+        var frame = frameIn
+        if (frame != null && (size == null || !sizeFitsFrame(size.first, size.second) ||
+                abs((size.first.toFloat() / size.second) / (frame.width.toFloat() / frame.height) - 1f) > 0.12f)
         ) {
             onEvent("ERROR:la cornice funziona solo in orizzontale 16:9")
-            beginTake(src)
-            return
+            frame = null
+            if (filter == "none") {
+                beginTake(src)
+                return
+            }
         }
+        val fr = frame
         processing = true
         onState("PROCESSING:0")
         try {
-            // l'overlay Media3 occupa "dimensione bitmap / dimensione video": a misura esatta copre tutto il fotogramma
-            val scaled = Bitmap.createScaledBitmap(frame, size.first, size.second, true)
-            overlayBmp = scaled
+            val effects = ArrayList<Effect>()
+            // prima l'effetto colore, poi la cornice sopra (così la cornice non cambia colore)
+            val m4 = Filters.rgb4(filter)
+            if (m4 != null) {
+                effects.add(object : RgbMatrix {
+                    override fun getMatrix(presentationTimeUs: Long, useHdr: Boolean): FloatArray = m4
+                })
+            }
+            if (fr != null && size != null) {
+                // l'overlay Media3 occupa "dimensione bitmap / dimensione video": a misura esatta copre tutto il fotogramma
+                val scaled = Bitmap.createScaledBitmap(fr, size.first, size.second, true)
+                overlayBmp = scaled
+                effects.add(OverlayEffect(ImmutableList.of<TextureOverlay>(BitmapOverlay.createStaticBitmapOverlay(scaled))))
+            }
             val out = File(takesDir, "take_${System.currentTimeMillis()}f.mp4")
-            val overlay = OverlayEffect(ImmutableList.of<TextureOverlay>(BitmapOverlay.createStaticBitmapOverlay(scaled)))
             val edited = EditedMediaItem.Builder(MediaItem.fromUri(Uri.fromFile(src)))
-                .setEffects(Effects(emptyList<AudioProcessor>(), listOf<Effect>(overlay)))
+                .setEffects(Effects(emptyList<AudioProcessor>(), effects))
                 .build()
             val t = Transformer.Builder(context)
                 .setVideoMimeType(MimeTypes.VIDEO_H264)
@@ -630,6 +682,7 @@ class CameraController(
         j.put("hasFrame", frameBmp != null)
         j.put("frame", frameOn && frameBmp != null)
         j.put("frameId", frameId)
+        j.put("filter", filter)
         runCatching {
             val bm = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
             j.put("battery", bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY))
@@ -655,6 +708,7 @@ class CameraController(
         if (j.has("ev")) ev = j.getInt("ev")
         if (j.has("flash")) flash = j.getBoolean("flash")
         if (j.has("frame")) frameOn = j.getBoolean("frame")
+        if (j.has("filter")) filter = j.getString("filter").let { if (Filters.has(it)) it else "none" }
         if (j.has("prefix")) {
             prefix = j.getString("prefix").filter { it.isLetterOrDigit() || it == '_' || it == '-' }.take(30)
             if (prefix.isEmpty()) prefix = "dedica"
@@ -677,7 +731,7 @@ class CameraController(
             .putString("quality", quality).putInt("duration", durationSec)
             .putFloat("zoom", zoom).putBoolean("torch", torch).putInt("ev", ev)
             .putString("prefix", prefix).putInt("counter", counter)
-            .putBoolean("flash", flash).putBoolean("frame", frameOn)
+            .putBoolean("flash", flash).putBoolean("frame", frameOn).putString("filter", filter)
             .apply()
         if (rebind) bind() else { applyControls(); publishInfo() }
     }
@@ -762,7 +816,7 @@ class CameraController(
                             onState("READY")
                         } else {
                             val fr = frameBmp
-                            if (frameOn && fr != null) applyVideoFrame(file, fr) else beginTake(file)
+                            if ((frameOn && fr != null) || filter != "none") applyVideoFrame(file, if (frameOn) fr else null) else beginTake(file)
                         }
                     }
                     else -> Unit

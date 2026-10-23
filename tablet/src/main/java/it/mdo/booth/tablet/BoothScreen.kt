@@ -152,7 +152,7 @@ fun BoothScreen(
             banner = when {
                 ev == "MOTION:FALL" -> "⚠ Il telefono camera è caduto!"
                 ev == "MOTION:MOVED" -> "⚠ Il telefono camera è stato spostato"
-                ev.startsWith("SAVED:") -> "Salvata ✓  " + ev.removePrefix("SAVED:")
+                ev.startsWith("SAVED:") -> Lang.t("Salvata ✓  ", "Saved ✓  ") + ev.removePrefix("SAVED:")
                 ev.startsWith("ERROR") -> "Errore: " + ev.removePrefix("ERROR:")
                 else -> null
             }
@@ -175,6 +175,20 @@ fun BoothScreen(
         }
     }
     LaunchedEffect(recording, starting) { if (recording || starting) showLegend = false }
+    // ritorno automatico alla schermata iniziale se nessuno tocca nulla
+    LaunchedEffect(qr, showSettings, showPin) {
+        if (qr != null && !showSettings && !showPin) { delay(45_000); qr = null }
+    }
+    LaunchedEffect(viewing, showSettings, showPin) {
+        if (viewing != null && !showSettings && !showPin) { delay(60_000); viewing = null }
+    }
+    LaunchedEffect(hasTake, takeSaved, takeFile, qr, showSettings, showPin) {
+        if (hasTake && qr == null && !showSettings && !showPin) {
+            delay(if (takeSaved) 30_000L else 60_000L)
+            // non salvato: si salva da solo, così la dedica dell'ospite non va persa
+            client.send(if (takeSaved) "DISCARD" else "SAVE")
+        }
+    }
 
     // telecomando Bluetooth a un tasto (singola / doppia / tripla / quadrupla / lunga)
     val remoteHandler: (RemoteGesture) -> Unit = handler@{ g ->
@@ -231,7 +245,7 @@ fun BoothScreen(
     Box(Modifier.fillMaxSize().background(borderBg)) {
         LivePreview(client, local, frameOverlay)
         if (!connected) {
-            Text("Cerco il telefono…", color = onBorder, fontSize = 28.sp, modifier = Modifier.align(Alignment.Center))
+            Text(Lang.t("Cerco il telefono…", "Looking for the phone…"), color = onBorder, fontSize = 28.sp, modifier = Modifier.align(Alignment.Center))
         }
         if (countdown > 0) {
             Text("$countdown", color = Color.White, fontSize = 220.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Center))
@@ -245,7 +259,7 @@ fun BoothScreen(
                 Modifier.align(Alignment.Center).clip(RoundedCornerShape(28.dp)).background(Color(0xCC000000)).padding(40.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text("Applico la cornice…", color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Bold)
+                Text(Lang.t("Elaboro…", "Processing…"), color = Color.White, fontSize = 34.sp, fontWeight = FontWeight.Bold)
                 Text("$processingPct%", color = Color(0xFFFFC107), fontSize = 56.sp, fontWeight = FontWeight.Bold)
             }
         }
@@ -273,7 +287,10 @@ fun BoothScreen(
                     .clickable { qr = QrRequest(null) },
                 contentAlignment = Alignment.Center,
             ) {
-                Text("QR", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                androidx.compose.material3.Icon(
+                    androidx.compose.ui.res.painterResource(R.drawable.ic_wifi), null,
+                    tint = Color.White, modifier = Modifier.size(30.dp),
+                )
             }
             // telecomando: compare solo se associato; anello verde = collegato, rosso/sbiadito = non collegato.
             // Tocca per mostrare la legenda dei gesti, tocca di nuovo per nasconderla.
@@ -412,9 +429,20 @@ fun BoothScreen(
                     androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(R.drawable.ic_camera), null,
                         tint = Color(0xFF3A0A33), modifier = Modifier.size(38.dp))
                 }
-                Text("FOTO", color = onBorder, fontSize = 13.sp, letterSpacing = 1.sp, fontWeight = FontWeight.SemiBold,
+                Text(Lang.t("FOTO", "PHOTO"), color = onBorder, fontSize = 13.sp, letterSpacing = 1.sp, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(top = 6.dp))
             }
+        }
+
+        // effetti stile Instagram (foto e video)
+        if (local.filtersUi && connected && state == "READY" && !starting && countdown == 0 &&
+            !hasTake && !processing && viewing == null && !recording
+        ) {
+            FilterStrip(
+                current = info?.optString("filter", "none") ?: "none",
+                onPick = { client.set(JSONObject().put("filter", it)) },
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = if (wide) 244.dp else 320.dp),
+            )
         }
 
         // anteprima del video appena registrato
@@ -452,7 +480,7 @@ fun BoothScreen(
             local.welcome.isNotBlank()
         ) {
             Text(
-                local.welcome,
+                if (Lang.en && local.welcome == "Lascia una dedica!") "Leave us a message!" else local.welcome,
                 color = if (wide) onBorder else Color.White,
                 fontSize = if (wide) 28.sp else 30.sp,
                 fontWeight = FontWeight.Bold,

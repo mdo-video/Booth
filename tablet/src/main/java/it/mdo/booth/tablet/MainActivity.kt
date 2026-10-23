@@ -43,8 +43,15 @@ class LocalSettings(private val prefs: SharedPreferences) {
     var borderMode by mutableIntStateOf(prefs.getInt("borderMode", 2))
     /** colore del bordo, ARGB */
     var borderColor by mutableIntStateOf(prefs.getInt("borderColor", 0xFFD61F9E.toInt()))
+    /** lingua dei testi per gli ospiti: "it" o "en" */
+    var lang by mutableStateOf(prefs.getString("lang", "it") ?: "it")
+    /** mostra agli ospiti la fila degli effetti */
+    var filtersUi by mutableStateOf(prefs.getBoolean("filtersUi", true))
+
+    init { Lang.en = lang == "en" }
 
     fun save() {
+        Lang.en = lang == "en"
         prefs.edit()
             .putBoolean("mirror", mirror)
             .putInt("countdown", countdown)
@@ -57,6 +64,8 @@ class LocalSettings(private val prefs: SharedPreferences) {
             .putBoolean("frameDefaultDone", frameDefaultDone)
             .putString("remoteDevice", remoteDevice)
             .putString("remoteName", remoteName)
+            .putString("lang", lang)
+            .putBoolean("filtersUi", filtersUi)
             .putInt("borderMode", borderMode)
             .putInt("borderColor", borderColor)
             .apply()

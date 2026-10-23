@@ -106,6 +106,12 @@ fun SettingsPanel(
                 }
             }
             SwitchRow("Suoni del conto alla rovescia", local.sound) { local.sound = it; local.save() }
+            Label("Lingua per gli ospiti")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Chip("Italiano", local.lang == "it") { local.lang = "it"; local.save() }
+                Chip("English", local.lang == "en") { local.lang = "en"; local.save() }
+            }
+            SwitchRow("Mostra gli effetti agli ospiti", local.filtersUi) { local.filtersUi = it; local.save() }
             Label("Messaggio di benvenuto")
             OutlinedTextField(
                 value = local.welcome,

@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -526,7 +527,7 @@ private fun SettingsTab(api: Api, upd: UpdateManager) {
                         )
                     }
                 }
-                Card("NOME FILE") {
+                Card("NOME EVENTO (NOME FILE)") {
                     var prefix by remember(info.optString("prefix")) { mutableStateOf(info.optString("prefix", "dedica")) }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
@@ -539,6 +540,7 @@ private fun SettingsTab(api: Api, upd: UpdateManager) {
                     val next = info.optInt("counter") + 1
                     Text("Prossimo file: ${info.optString("prefix")}_${"%03d".format(next)}.mp4", color = Color.White, fontSize = 16.sp)
                     Row { Chip("Azzera numerazione", false) { sendPhone("counter", 0) } }
+                    Note("Cambia il nome a ogni evento: nella scheda Dediche i file si raggruppano per nome.")
                 }
                 Card("MICROFONO") {
                     val mic = info.optString("mic")
@@ -562,6 +564,17 @@ private fun SettingsTab(api: Api, upd: UpdateManager) {
                     if (present) Chip("Rimuovi", false) { send(JSONObject().put("frame", "remove")) }
                 }
                 Note("Per scegliere un'altra immagine dalla galleria usa le impostazioni sul tablet.")
+            }
+
+            Card("EFFETTO (STILE INSTAGRAM)") {
+                val cur = info?.optString("filter", "none") ?: "none"
+                Row(
+                    Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Filters.all.forEach { (id, name) -> Chip(name, cur == id) { sendPhone("filter", id) } }
+                }
+                Note("Vale per foto e video. Gli ospiti possono sceglierlo anche dal tablet, sotto l'anteprima.")
             }
 
             // ---- dashcam ----

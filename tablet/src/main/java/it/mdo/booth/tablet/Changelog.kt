@@ -21,6 +21,12 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(27, "1.22", "Effetti, inglese e ritorno automatico", listOf(
+            "Effetti stile Instagram su foto e video (B&N, Seppia, Vintage, Caldo, Freddo, Vivido): gli ospiti li scelgono dalla fila sotto l'anteprima e li vedono subito",
+            "Testi per gli ospiti anche in inglese: impostazioni, Lingua per gli ospiti",
+            "Ritorno automatico: il QR si chiude dopo 45 secondi e un video non salvato si salva da solo dopo 60 secondi",
+            "Il tasto QR in alto a destra ora ha l'icona del Wi-Fi",
+        )),
         Entry(26, "1.21", "Notifiche di aggiornamento ad app chiusa", listOf(
             "Il controllo delle nuove versioni ora funziona anche quando l'app è chiusa (ogni 3 ore circa, anche dopo il riavvio)",
             "Se non arriva nulla, nelle impostazioni Android dell'app togli le restrizioni batteria (su Xiaomi anche \"Avvio automatico\")",

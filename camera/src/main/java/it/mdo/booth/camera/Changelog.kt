@@ -21,6 +21,9 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(27, "1.22", "Effetti foto e video", listOf(
+            "Effetti colore stile Instagram applicati a foto e video, anche senza cornice",
+        )),
         Entry(26, "1.21", "Notifiche di aggiornamento ad app chiusa", listOf(
             "Il controllo delle nuove versioni ora funziona anche quando l'app è chiusa (ogni 3 ore circa, anche dopo il riavvio)",
             "Se non arriva nulla, nelle impostazioni Android dell'app togli le restrizioni batteria (su Xiaomi anche \"Avvio automatico\")",

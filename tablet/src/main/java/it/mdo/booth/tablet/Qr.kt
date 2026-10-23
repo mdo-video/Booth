@@ -72,15 +72,15 @@ fun QrOverlay(wifi: String?, videoUrl: String?, onClose: () -> Unit) {
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.Top) {
             QrCard(
-                "1 · Collegati al Wi-Fi", "Inquadra per entrare nella rete del booth", wifiBmp,
-                "Imposta il nome e la password del Wi-Fi nelle impostazioni del tablet",
+                Lang.t("1 · Collegati al Wi-Fi", "1 · Join the Wi-Fi"), Lang.t("Inquadra per entrare nella rete del booth", "Scan to join the booth network"), wifiBmp,
+                Lang.t("Imposta il nome e la password del Wi-Fi nelle impostazioni del tablet", "Set the Wi-Fi name and password in the tablet settings"),
             )
             if (videoUrl != null) {
-                QrCard("2 · Scarica il tuo file", "Inquadra dopo esserti collegato al Wi-Fi", videoBmp, "")
+                QrCard(Lang.t("2 · Scarica il tuo file", "2 · Download your file"), Lang.t("Inquadra dopo esserti collegato al Wi-Fi", "Scan after joining the Wi-Fi"), videoBmp, "")
             }
         }
         Text(
-            "Tocca per chiudere", color = Color(0xB3FFFFFF), fontSize = 16.sp,
+            Lang.t("Tocca per chiudere", "Tap to close"), color = Color(0xB3FFFFFF), fontSize = 16.sp,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),
         )
     }
@@ -164,13 +164,13 @@ fun DownloadedMedia(client: BoothClient, path: String, cacheKey: String, modifie
             }
             f != null -> VideoPlayer(Uri.fromFile(f).toString(), Modifier.fillMaxSize())
             failed -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Anteprima non disponibile", color = Color.White, fontSize = 14.sp)
+                Text(Lang.t("Anteprima non disponibile", "Preview unavailable"), color = Color.White, fontSize = 14.sp)
                 Spacer(Modifier.height(8.dp))
                 CardButton("Riprova", Color(0xFF3A3F47), Modifier.width(120.dp)) { attempt++ }
             }
             else -> Column(Modifier.padding(16.dp)) {
                 val pct = (progress.coerceIn(0f, 1f) * 100).toInt()
-                Text("Scarico l'anteprima… $pct%", color = Color.White, fontSize = 14.sp)
+                Text(Lang.t("Scarico l'anteprima…", "Loading preview…") + " $pct%", color = Color.White, fontSize = 14.sp)
                 Spacer(Modifier.height(8.dp))
                 LinearProgressIndicator(progress = { progress.coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
             }
