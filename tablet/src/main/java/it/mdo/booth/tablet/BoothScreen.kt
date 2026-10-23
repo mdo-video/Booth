@@ -1,5 +1,6 @@
 package it.mdo.booth.tablet
 
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -258,7 +259,7 @@ fun BoothScreen(
                 Modifier.fillMaxSize().padding(previewPadding(local.borderMode))
                     .pointerInput(Unit) {
                         var acc = 0f
-                        androidx.compose.foundation.gestures.detectHorizontalDragGestures(
+                        detectHorizontalDragGestures(
                             onDragStart = { acc = 0f },
                             onDragEnd = {
                                 if (kotlin.math.abs(acc) > 100f) {
