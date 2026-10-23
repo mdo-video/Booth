@@ -21,6 +21,12 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(33, "1.28", "Schermata più pulita", listOf(
+            "Nascosti per gli ospiti batteria, spazio e stato del telecomando: restano Wi-Fi/QR, Torcia, Flash, Video/Foto e REC",
+        )),
+        Entry(32, "1.27", "Solo i tasti per gli ospiti", listOf(
+            "Tolti i tasti Cornice e Blocca dalla schermata principale: restano Torcia e Flash. Cornice e blocco si cambiano da impostazioni o da Controllo",
+        )),
         Entry(31, "1.26", "Impostazioni nascoste", listOf(
             "Il pulsante Impostazioni non si vede più: si aprono tenendo premuto sul bordo fuori dall'anteprima (poi il PIN)",
         )),

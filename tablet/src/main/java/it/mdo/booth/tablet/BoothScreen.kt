@@ -315,7 +315,7 @@ fun BoothScreen(
         // in alto a destra: telecomando e Wi-Fi/QR
         if (wide && !recording && !starting && !processing && countdown == 0) {
             TopPills(
-                remotePaired = local.remoteDevice.isNotEmpty(),
+                remotePaired = false,
                 remoteConnected = remoteConnected,
                 onRemote = { showLegend = !showLegend },
                 onWifi = { qr = QrRequest(null) },
@@ -508,7 +508,8 @@ fun BoothScreen(
 
         // batteria e spazio del telefono
         if (connected) {
-            info?.let { StatusBadge(it, Modifier.align(if (wide) Alignment.BottomStart else Alignment.TopStart).padding(20.dp)) }
+            // batteria e spazio: nel layout nuovo non servono agli ospiti (si vedono nelle impostazioni)
+            if (!wide) info?.let { StatusBadge(it, Modifier.align(Alignment.TopStart).padding(20.dp)) }
         }
 
         // messaggio d'attesa

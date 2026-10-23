@@ -55,16 +55,7 @@ fun CameraControls(client: BoothClient, info: JSONObject, modifier: Modifier = M
                 client.set(JSONObject().put("flash", !f))
             }
         }
-        if (info.optBoolean("hasFrame")) {
-            val fr = info.optBoolean("frame")
-            ControlButton(R.drawable.ic_frame, Lang.t("CORNICE", "FRAME"), fr) {
-                client.set(JSONObject().put("frame", !fr))
-            }
-        }
-        val lk = info.optBoolean("lock")
-        ControlButton(R.drawable.ic_lock, Lang.t("BLOCCA", "LOCK"), lk) {
-            client.set(JSONObject().put("lock", !lk))
-        }
+        // Cornice e blocco AUTO/FISSO non sono per gli ospiti: si cambiano dalle impostazioni o da Controllo
     }
 }
 
