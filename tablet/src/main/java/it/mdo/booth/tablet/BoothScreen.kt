@@ -115,6 +115,11 @@ fun BoothScreen(
         }
     }
     LaunchedEffect(recording) { if (recording) { viewing = null; qr = null } }
+    // effetti personalizzati: si mandano al telefono quando ci si collega e dopo ogni modifica
+    LaunchedEffect(connected, hasInfo, local.customFilters) {
+        delay(600)
+        if (connected && hasInfo) client.set(JSONObject().put("customFilters", local.customFilters))
+    }
     // la cornice del tablet viene mandata al telefono se questo non ha la stessa
     LaunchedEffect(connected, hasInfo, phoneFrameId, frames.id) {
         val data = frames.bytes
@@ -257,7 +262,7 @@ fun BoothScreen(
                 if (dashCfg.adminPin == "-") { showSettings = true; client.send("INFO?") } else showPin = true
             })
         }
-        LivePreview(client, local, frameOverlay)
+        LivePreview(client, local, frameOverlay, dim = hasTake || viewing != null)
         // scorrendo il dito sull'anteprima si cambia effetto, come le storie di Instagram
         val swipeOn = local.filtersUi && connected && state == "READY" && !starting && countdown == 0 &&
             !hasTake && !processing && viewing == null && !recording && !showSettings && !showPin && qr == null
@@ -282,8 +287,7 @@ fun BoothScreen(
                         )
                     },
             ) {
-                FilterHint(shownFilter, Modifier.align(Alignment.CenterStart).padding(start = 14.dp))
-                filterToast?.let { FilterToast(it, Modifier.align(Alignment.Center)) }
+                FilterHint(shownFilter, Modifier.align(Alignment.CenterStart).padding(start = 82.dp))
             }
         }
         if (!connected) {
@@ -317,9 +321,10 @@ fun BoothScreen(
             TopPills(
                 remotePaired = false,
                 remoteConnected = remoteConnected,
+                phoneConnected = connected,
                 onRemote = { showLegend = !showLegend },
                 onWifi = { qr = QrRequest(null) },
-                modifier = Modifier.align(Alignment.TopEnd).padding(top = 36.dp, end = 168.dp),
+                modifier = Modifier.align(Alignment.TopEnd).padding(top = 48.dp, end = 160.dp),
             )
         }
         // altri bordi: nessun tasto visibile. Pressione lunga sull'angolo in alto a destra + PIN.
@@ -458,6 +463,7 @@ fun BoothScreen(
                             modifier = Modifier.size(124.dp),
                             color = Color(0xFFE53935),
                             strokeWidth = 6.dp,
+                            trackColor = Color(0xFF3D3A41),
                         )
                     }
                     val enabled = connected && !starting
@@ -478,6 +484,13 @@ fun BoothScreen(
                         )
                     }
                 }
+                // tasto luce accanto a REC: torcia in modalità VIDEO, flash in modalità FOTO
+                val hasLight = if (isPhoto) info?.optBoolean("hasFlash") == true else info?.optBoolean("hasTorch") == true
+                if (wide && !recording && !starting && countdown == 0 && hasLight) {
+                    val key = if (isPhoto) "flash" else "torch"
+                    val lightOn = info?.optBoolean(key) == true
+                    LightButton(isPhoto, lightOn, { client.set(JSONObject().put(key, !lightOn)) })
+                }
             }
         }
 
@@ -497,12 +510,12 @@ fun BoothScreen(
                     if (takeSaved && savedName != null) qr = QrRequest("$base/h/$savedName")
                     else { pendingQr = true; client.send("SAVE") }
                 },
-                modifier = Modifier.align(Alignment.BottomEnd).padding(24.dp),
+                modifier = Modifier.align(Alignment.Center).padding(bottom = 32.dp),
             )
         }
 
         // torcia e focali
-        if (!hasTake && !processing && connected && viewing == null) {
+        if (!wide && !hasTake && !processing && connected && viewing == null) {
             info?.let { CameraControls(client, it, Modifier.align(Alignment.CenterEnd).padding(top = zoneTop, bottom = zoneBottom, end = 24.dp)) }
         }
 
@@ -538,7 +551,7 @@ fun BoothScreen(
             HistoryStrip(
                 client = client,
                 list = history,
-                selected = viewing?.name,
+                selected = viewing?.name ?: history.firstOrNull()?.name,
                 onSelect = { viewing = it },
                 modifier = Modifier.align(Alignment.CenterStart).padding(start = 16.dp, top = if (wide) zoneTop else 24.dp, bottom = if (wide) zoneBottom else 24.dp),
             )
@@ -552,7 +565,7 @@ fun BoothScreen(
                     name = v.name,
                     onClose = { viewing = null },
                     onShare = { EventLog.add("CONDIVISA", v.name); qr = QrRequest("$base/h/${v.name}") },
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(24.dp),
+                    modifier = Modifier.align(Alignment.Center).padding(bottom = 32.dp),
                 )
             }
         }

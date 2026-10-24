@@ -47,8 +47,10 @@ class LocalSettings(private val prefs: SharedPreferences) {
     var lang by mutableStateOf(prefs.getString("lang", "it") ?: "it")
     /** mostra agli ospiti la fila degli effetti */
     var filtersUi by mutableStateOf(prefs.getBoolean("filtersUi", true))
+    /** effetti personalizzati (testo JSON), mandati anche al telefono */
+    var customFilters by mutableStateOf(prefs.getString("customFilters", "") ?: "")
 
-    init { Lang.en = lang == "en" }
+    init { Lang.en = lang == "en"; Filters.setCustom(customFilters) }
 
     fun save() {
         Lang.en = lang == "en"
@@ -66,6 +68,7 @@ class LocalSettings(private val prefs: SharedPreferences) {
             .putString("remoteName", remoteName)
             .putString("lang", lang)
             .putBoolean("filtersUi", filtersUi)
+            .putString("customFilters", customFilters)
             .putInt("borderMode", borderMode)
             .putInt("borderColor", borderColor)
             .apply()

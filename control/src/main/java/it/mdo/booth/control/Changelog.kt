@@ -21,6 +21,12 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(36, "1.31", "Nuovi effetti", listOf(
+            "La scelta dell'effetto mostra tutti gli effetti, anche quelli personalizzati",
+        )),
+        Entry(34, "1.29", "Nuove icone", listOf(
+            "Icone rinnovate: stesso logo MD, colore diverso per ogni app (Booth rosso, Camera blu, Controllo verde)",
+        )),
         Entry(27, "1.22", "Effetti e dediche per evento", listOf(
             "Scheda Effetto nelle impostazioni: stesso effetto su foto e video",
             "Dediche raggruppate per nome evento (il nome file): cambialo a ogni evento",

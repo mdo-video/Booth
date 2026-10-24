@@ -91,7 +91,7 @@ private fun HistoryThumb(client: BoothClient, item: HistoryItem, selected: Boole
             color = Color.White,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 4.dp).background(Color(0x99000000)).padding(horizontal = 6.dp),
+            modifier = Modifier.padding(bottom = 4.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xB3000000)).padding(horizontal = 8.dp, vertical = 1.dp),
         )
     }
 }
@@ -108,14 +108,14 @@ fun HistoryCard(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier.width(320.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xEE1B1D22)).padding(10.dp)
+        modifier.width(560.dp).clip(RoundedCornerShape(24.dp)).background(Color(0xF21C1D22)).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        DownloadedMedia(client, path, cacheKey, Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(10.dp)))
-        Spacer(Modifier.height(8.dp))
-        Text(name, color = Color.White, fontSize = 14.sp, modifier = Modifier.padding(bottom = 6.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CardButton(Lang.t("Chiudi", "Close"), Color(0xFF3A3F47), Modifier.weight(1f), onClose)
-            CardButton(Lang.t("Condividi", "Share"), Color(0xFF1565C0), Modifier.weight(1f), onShare)
+        DownloadedMedia(client, path, cacheKey, Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(14.dp)))
+        Text(name, color = Color.White, fontSize = 15.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlineButton(Lang.t("Chiudi", "Close"), Modifier.weight(1f), onClose)
+            OutlineButton(Lang.t("Condividi", "Share"), Modifier.weight(1f), onShare)
         }
     }
 }

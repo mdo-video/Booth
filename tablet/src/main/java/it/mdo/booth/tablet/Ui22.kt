@@ -59,16 +59,26 @@ private fun Pill(onClick: () -> Unit, content: @Composable RowScope.() -> Unit) 
     )
 }
 
-/** In alto a destra: telecomando (se associato) e Wi-Fi/QR. Le impostazioni sono nascoste (pressione lunga sul bordo). */
+@Composable
+private fun RoundBtn(onClick: (() -> Unit)?, content: @Composable () -> Unit) {
+    Box(
+        Modifier.size(44.dp).clip(CircleShape).background(Color(0xFF291A37))
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        contentAlignment = Alignment.Center,
+    ) { content() }
+}
+
+/** In alto a destra: Wi-Fi/QR e pallino di stato del telefono (verde = collegato). Le impostazioni sono nascoste (pressione lunga sul bordo). */
 @Composable
 fun TopPills(
     remotePaired: Boolean,
     remoteConnected: Boolean,
+    phoneConnected: Boolean,
     onRemote: () -> Unit,
     onWifi: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
         if (remotePaired) {
             Pill(onRemote) {
                 Box(Modifier.size(9.dp).clip(CircleShape).background(if (remoteConnected) Color(0xFF43A047) else Color(0xFFE53935)))
@@ -79,32 +89,48 @@ fun TopPills(
                 )
             }
         }
-        Pill(onWifi) {
-            Icon(painterResource(R.drawable.ic_wifi), null, tint = Color.White, modifier = Modifier.size(20.dp))
+        RoundBtn(onWifi) {
+            Icon(painterResource(R.drawable.ic_wifi), null, tint = Color.White, modifier = Modifier.size(22.dp))
+        }
+        RoundBtn(null) {
+            Box(Modifier.size(18.dp).clip(CircleShape).background(if (phoneConnected) Color(0xFF43A047) else Color(0xFFE53935)))
         }
     }
 }
 
-/** Sul lato sinistro dell'anteprima: puntini verticali dell'effetto attivo e indicazione "scorri". */
+/** Sul lato sinistro dell'anteprima: puntini dell'effetto attivo, indicazione "scorri" e nome dell'effetto. */
 @Composable
 fun FilterHint(current: String, modifier: Modifier = Modifier) {
+    val all = Filters.all
+    val idx = all.indexOfFirst { it.id == current }.coerceAtLeast(0)
+    val first = (idx - 2).coerceIn(0, (all.size - 5).coerceAtLeast(0))
+    val last = minOf(all.size, first + 5)
     Column(
-        modifier.clip(RoundedCornerShape(28.dp)).background(Color(0x99000000))
-            .padding(horizontal = 10.dp, vertical = 12.dp),
+        modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text(Lang.t("Effetti", "Effects"), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-        Text("▲", color = Color.White, fontSize = 12.sp)
-        Filters.all.forEach { f ->
-            val sel = f.id == current
-            Box(
-                Modifier.size(if (sel) 10.dp else 6.dp).clip(CircleShape)
-                    .background(if (sel) Color(0xFFFFE83A) else Color(0x88FFFFFF))
-            )
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            for (i in first until last) {
+                val sel = i == idx
+                Box(
+                    Modifier.size(if (sel) 12.dp else 8.dp).clip(CircleShape)
+                        .background(if (sel) Color(0xFFFFE83A) else Color(0xB3FFFFFF))
+                )
+            }
         }
-        Text("▼", color = Color.White, fontSize = 12.sp)
-        Text(Lang.t("scorri", "swipe"), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Text(
+            Lang.t("‹ Scorri per gli effetti ›", "‹ Swipe for effects ›"),
+            color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.clip(RoundedCornerShape(50)).background(Color(0xB3000000))
+                .padding(horizontal = 14.dp, vertical = 8.dp),
+        )
+        Text(
+            Filters.label(all[idx]),
+            color = Color(0xFF14101A), fontSize = 22.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.clip(RoundedCornerShape(50)).background(Color(0xFFFFE83A))
+                .padding(horizontal = 22.dp, vertical = 8.dp),
+        )
     }
 }
 
@@ -138,6 +164,23 @@ private fun Seg(label: String, selected: Boolean, onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(horizontal = 26.dp, vertical = 14.dp),
     )
+}
+
+/** Tasto luce accanto a REC: in modalità VIDEO è la torcia, in modalità FOTO è il flash. Giallo = acceso, scuro = spento. */
+@Composable
+fun LightButton(photo: Boolean, on: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier.size(72.dp).clip(CircleShape)
+            .background(if (on) Color(0xFFFFD54A) else Color(0xFF291A37))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painterResource(if (photo) R.drawable.ic_bolt else R.drawable.ic_torch), null,
+            tint = if (on) Color(0xFF2B1B00) else Color.White,
+            modifier = Modifier.size(32.dp),
+        )
+    }
 }
 
 /** Zone invisibili sul bordo fuori dall'anteprima: tenendo premuto si aprono le impostazioni (PIN). */

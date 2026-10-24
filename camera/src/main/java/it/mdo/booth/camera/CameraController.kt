@@ -133,6 +133,7 @@ class CameraController(
     private var counter = prefs.getInt("counter", 0)
     private var flash = prefs.getBoolean("flash", true)      // flash (doppio LED) negli scatti
     private var filter = prefs.getString("filter", "none") ?: "none"   // effetto colore su foto e video
+    init { Filters.setCustom(prefs.getString("customFilters", "") ?: "") }   // effetti personalizzati mandati dal tablet
     private var frameOn = prefs.getBoolean("frame", false)   // cornice su foto e video
     private var orientation = prefs.getString("orientation", "landscape") ?: "landscape"
     private val camManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
@@ -683,6 +684,7 @@ class CameraController(
         j.put("frame", frameOn && frameBmp != null)
         j.put("frameId", frameId)
         j.put("filter", filter)
+        j.put("filters", Filters.listJson())
         runCatching {
             val bm = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
             j.put("battery", bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY))
@@ -708,6 +710,11 @@ class CameraController(
         if (j.has("ev")) ev = j.getInt("ev")
         if (j.has("flash")) flash = j.getBoolean("flash")
         if (j.has("frame")) frameOn = j.getBoolean("frame")
+        if (j.has("customFilters")) {
+            val cf = j.getString("customFilters")
+            Filters.setCustom(cf)
+            prefs.edit().putString("customFilters", cf).apply()
+        }
         if (j.has("filter")) filter = j.getString("filter").let { if (Filters.has(it)) it else "none" }
         if (j.has("prefix")) {
             prefix = j.getString("prefix").filter { it.isLetterOrDigit() || it == '_' || it == '-' }.take(30)

@@ -21,6 +21,21 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(36, "1.31", "Nuovi effetti e tasto torcia/flash", listOf(
+            "Il tasto accanto a REC è la torcia quando sei in VIDEO e il flash quando sei in FOTO (giallo = acceso)",
+            "Tanti nuovi effetti: Cinema, Dorato, Romantico, Pastello, Noir, Sbiadito e quelli simpatici (Neon, Cartoon, Anni '80, Sogno, Notte, Pop Art, Sole, Gelato, Tramonto, Oceano, Matrix, Alieno)",
+            "Effetti personalizzati: nelle impostazioni, campo \"Effetti personalizzati\" (si incolla un testo, c'è un esempio). Il tablet li manda in automatico al telefono",
+        )),
+        Entry(35, "1.30", "Nuovo layout come il mockup", listOf(
+            "Pallino di stato del telefono accanto al Wi-Fi, in alto a destra",
+            "Effetti: puntini, scritta \"Scorri per gli effetti\" e nome dell'effetto sempre visibile",
+            "Tasto flash giallo accanto a REC (giallo = acceso)",
+            "Dopo il video: scheda al centro con Salva grande, poi Rifai e Condividi",
+            "Nello storico il video più recente ha il bordo giallo",
+        )),
+        Entry(34, "1.29", "Nuove icone", listOf(
+            "Icone rinnovate: stesso logo MD, colore diverso per ogni app (Booth rosso, Camera blu, Controllo verde)",
+        )),
         Entry(33, "1.28", "Schermata più pulita", listOf(
             "Nascosti per gli ospiti batteria, spazio e stato del telecomando: restano Wi-Fi/QR, Torcia, Flash, Video/Foto e REC",
         )),

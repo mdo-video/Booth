@@ -3,6 +3,7 @@ package it.mdo.booth.tablet
 import android.net.Uri
 import android.widget.VideoView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -33,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 
-/** Piccola anteprima in basso a destra: guarda il video, poi Rifai / Salva / Condividi (QR). */
+/** Scheda al centro dell'anteprima: guarda il video, poi Salva / Rifai / Condividi (QR). */
 @Composable
 fun TakeCard(
     client: BoothClient,
@@ -47,24 +48,48 @@ fun TakeCard(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier.width(320.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xEE1B1D22)).padding(10.dp)
+        modifier.width(560.dp).clip(RoundedCornerShape(24.dp)).background(Color(0xF21C1D22)).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        DownloadedMedia(client, path, cacheKey, Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(10.dp)))
-        Spacer(Modifier.height(8.dp))
+        DownloadedMedia(client, path, cacheKey, Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(14.dp)))
         if (saved) {
-            Text(Lang.t("Salvata ✓", "Saved ✓") + " ${savedName ?: ""}", color = Color(0xFF66BB6A), fontSize = 14.sp,
-                modifier = Modifier.padding(bottom = 6.dp))
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (!saved) {
-                CardButton(Lang.t("Rifai", "Retake"), Color(0xFF3A3F47), Modifier.weight(1f), onRedo)
-                CardButton(Lang.t("Salva", "Save"), Color(0xFF2E7D32), Modifier.weight(1f), onSave)
-            } else {
-                CardButton(Lang.t("Nuova", "New"), Color(0xFFE53935), Modifier.weight(1f), onRedo)
+            Text(
+                Lang.t("Salvata ✓", "Saved ✓") + " ${savedName ?: ""}",
+                color = Color(0xFF66BB6A), fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+            )
+            BigButton(Lang.t("Nuova", "New"), Color(0xFFFF2D55), onRedo)
+            OutlineButton(Lang.t("Condividi", "Share"), Modifier.fillMaxWidth(), onShare)
+        } else {
+            BigButton(Lang.t("Salva", "Save"), Color(0xFF2E7D32), onSave)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlineButton(Lang.t("Rifai", "Retake"), Modifier.weight(1f), onRedo)
+                // Condividi salva (se serve) e mostra il QR: non si esce mai dal kiosk
+                OutlineButton(Lang.t("Condividi", "Share"), Modifier.weight(1f), onShare)
             }
-            // Condividi salva (se serve) e mostra il QR: non si esce mai dal kiosk
-            CardButton(Lang.t("Condividi", "Share"), Color(0xFF1565C0), Modifier.weight(1f), onShare)
         }
+    }
+}
+
+/** Tasto grande a tutta larghezza (Salva). */
+@Composable
+internal fun BigButton(text: String, color: Color, onClick: () -> Unit) {
+    Box(
+        Modifier.fillMaxWidth().height(64.dp).clip(RoundedCornerShape(16.dp)).background(color).clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Tasto con bordo sottile (Rifai, Condividi, Chiudi). */
+@Composable
+internal fun OutlineButton(text: String, modifier: Modifier, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(14.dp)
+    Box(
+        modifier.height(50.dp).clip(shape).background(Color(0xFF1F2025)).border(1.dp, Color(0xFF343539), shape).clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 

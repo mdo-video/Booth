@@ -572,7 +572,7 @@ private fun SettingsTab(api: Api, upd: UpdateManager) {
                     Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Filters.all.forEach { (id, name) -> Chip(name, cur == id) { sendPhone("filter", id) } }
+                    Filters.fromInfo(info).forEach { (id, name) -> Chip(name, cur == id) { sendPhone("filter", id) } }
                 }
                 Note("Vale per foto e video. Gli ospiti possono sceglierlo anche dal tablet, sotto l'anteprima.")
             }

@@ -78,7 +78,7 @@ fun StatusBadge(info: JSONObject, modifier: Modifier = Modifier) {
  * La cornice (se attiva) sta sopra, non specchiata, nello stesso rettangolo dell'immagine.
  */
 @Composable
-fun LivePreview(client: BoothClient, local: LocalSettings, overlay: ImageBitmap? = null) {
+fun LivePreview(client: BoothClient, local: LocalSettings, overlay: ImageBitmap? = null, dim: Boolean = false) {
     val frame by client.frame.collectAsState()
     val pinfo by client.info.collectAsState()
     val fid = FilterState.override ?: (pinfo?.optString("filter", "none") ?: "none")
@@ -120,6 +120,8 @@ fun LivePreview(client: BoothClient, local: LocalSettings, overlay: ImageBitmap?
                         contentScale = ContentScale.FillBounds,
                     )
                 }
+                // schermata del video appena fatto: anteprima scurita dietro la scheda
+                if (dim) Box(Modifier.fillMaxSize().background(Color(0xA6120F18)))
             }
         }
     }
