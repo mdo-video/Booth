@@ -21,6 +21,10 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(41, "1.36", "Telecomando e pagina QR", listOf(
+            "Il telecomando durante il conto alla rovescia non fa nulla, come il tocco sul tablet",
+            "Il QR apre una pagina con anteprima e tasto Scarica per foto e video",
+        )),
         Entry(40, "1.35", "Nascondi dediche dalla galleria", listOf(
             "Nel tab Dediche: seleziona le dediche (anche i test) e tocca Nascondi: spariscono solo dalla pellicola del tablet. \"Mostra nascoste\" le rimette",
             "Effetti ridotti a 7 anche qui",

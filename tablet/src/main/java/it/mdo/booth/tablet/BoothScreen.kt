@@ -169,7 +169,7 @@ fun BoothScreen(
     }
     LaunchedEffect(takeSaved, savedName) {
         if (takeSaved && savedName != null && (local.autoQr || pendingQr) && base != null) {
-            qr = QrRequest("$base/h/$savedName")
+            qr = QrRequest("$base/p/$savedName")
             pendingQr = false
         }
     }
@@ -236,10 +236,8 @@ fun BoothScreen(
         fun ack() { if (local.sound) tone?.startTone(ToneGenerator.TONE_PROP_ACK, 120) }
         // QR a schermo: qualsiasi pressione lo chiude
         if (qr != null) { qr = null; return@handler }
-        // conto alla rovescia in corso: annulla
-        if (starting || countdown > 0) {
-            starting = false; countdown = 0; banner = "Annullato"; ack(); return@handler
-        }
+        // conto alla rovescia in corso: come il tocco sul tablet, non fa nulla
+        if (starting || countdown > 0) return@handler
         // registrazione in corso: STOP
         if (recording) { client.send("STOP"); return@handler }
         // anteprima del video/foto appena fatti
@@ -247,7 +245,7 @@ fun BoothScreen(
             if (takeSaved) {
                 if (g == RemoteGesture.SINGLE) { client.send("DISCARD"); ack() }            // Nuova
                 else if (g != RemoteGesture.DOUBLE && savedName != null && base != null) { // QR
-                    qr = QrRequest("$base/h/$savedName"); ack()
+                    qr = QrRequest("$base/p/$savedName"); ack()
                 }
             } else {
                 if (g == RemoteGesture.SINGLE) { client.send("SAVE"); ack() }                // Salva
@@ -505,7 +503,7 @@ fun BoothScreen(
                         }
                     }
                     if (!hasTake) {
-                        Text("Conto alla rovescia: annulla · REC: STOP", color = Color(0xFFC9A4E6), fontSize = 13.sp)
+                        Text("REC: STOP", color = Color(0xFFC9A4E6), fontSize = 13.sp)
                     }
                 }
             }
@@ -574,7 +572,7 @@ fun BoothScreen(
                 onShare = {
                     // Condividi = QR, senza uscire dal kiosk
                     EventLog.add("CONDIVISA")
-                    if (takeSaved && savedName != null) qr = QrRequest("$base/h/$savedName")
+                    if (takeSaved && savedName != null) qr = QrRequest("$base/p/$savedName")
                     else { pendingQr = true; client.send("SAVE") }
                 },
                 modifier = Modifier.align(Alignment.Center).padding(bottom = 32.dp),
@@ -631,7 +629,7 @@ fun BoothScreen(
                     cacheKey = "h_${v.time}_${v.name}",
                     name = v.name,
                     onClose = { viewing = null },
-                    onShare = { EventLog.add("CONDIVISA", v.name); qr = QrRequest("$base/h/${v.name}") },
+                    onShare = { EventLog.add("CONDIVISA", v.name); qr = QrRequest("$base/p/${v.name}") },
                     modifier = Modifier.align(Alignment.Center).padding(bottom = 32.dp),
                 )
             }

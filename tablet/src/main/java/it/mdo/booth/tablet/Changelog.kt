@@ -21,6 +21,10 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(41, "1.36", "Telecomando e pagina QR", listOf(
+            "Il telecomando durante il conto alla rovescia non fa nulla, come il tocco sul tablet",
+            "Il QR apre una pagina con anteprima e tasto Scarica per foto e video",
+        )),
         Entry(40, "1.35", "Effetti migliori e splash", listOf(
             "Effetti ridotti a 7, i migliori: Normale, Cinema, Dorato, Romantico, Noir, Vintage, Neon",
             "I puntini sono sempre 7 e corrispondono uno a uno agli effetti",

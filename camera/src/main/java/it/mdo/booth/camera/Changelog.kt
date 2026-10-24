@@ -21,6 +21,10 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(41, "1.36", "Telecomando e pagina QR", listOf(
+            "Il telecomando durante il conto alla rovescia non fa nulla, come il tocco sul tablet",
+            "Il QR apre una pagina con anteprima e tasto Scarica per foto e video",
+        )),
         Entry(40, "1.35", "Effetti e eliminazione dediche", listOf(
             "Effetti ridotti a 7 (Normale, Cinema, Dorato, Romantico, Noir, Vintage, Neon)",
             "Si possono eliminare le dediche dall'app Controllo",

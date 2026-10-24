@@ -3,7 +3,9 @@ package it.mdo.booth.camera
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
 import io.ktor.server.application.install
@@ -14,6 +16,7 @@ import io.ktor.server.http.content.LocalFileContent
 import io.ktor.server.plugins.autohead.AutoHeadResponse
 import io.ktor.server.plugins.partialcontent.PartialContent
 import io.ktor.server.request.receive
+import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
@@ -103,9 +106,39 @@ class StreamServer(
                     val f = historyFile(call.parameters["name"].orEmpty())
                     if (f != null) {
                         val type = if (f.name.endsWith(".jpg")) ContentType.Image.JPEG else ContentType.Video.MP4
+                        if (call.request.queryParameters["dl"] == "1") {
+                            call.response.header(
+                                HttpHeaders.ContentDisposition,
+                                ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, f.name).toString(),
+                            )
+                        }
                         call.respond(LocalFileContent(f, type))
                     } else {
                         call.respond(HttpStatusCode.NotFound)
+                    }
+                }
+                get("/p/{name}") {
+                    // pagina del QR: anteprima della foto o del video con il tasto Scarica
+                    val n = call.parameters["name"].orEmpty()
+                    val f = historyFile(n)
+                    if (f == null || !f.exists()) {
+                        call.respond(HttpStatusCode.NotFound)
+                    } else {
+                        val photo = f.name.endsWith(".jpg")
+                        val media = if (photo) "<img src=\"/h/${f.name}\" alt=\"\">"
+                        else "<video src=\"/h/${f.name}\" controls playsinline preload=\"metadata\"></video>"
+                        val label = if (photo) "Scarica la foto" else "Scarica il video"
+                        val html = "<!DOCTYPE html><html lang=\"it\"><head><meta charset=\"utf-8\">" +
+                            "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
+                            "<title>La tua dedica</title><style>" +
+                            "body{margin:0;background:#14101A;color:#fff;font-family:sans-serif;text-align:center}" +
+                            "img,video{width:100%;max-height:75vh;object-fit:contain;background:#000;display:block}" +
+                            "a.b{display:inline-block;margin:20px 0 28px;padding:16px 34px;border-radius:40px;" +
+                            "background:#FF2D55;color:#fff;font-size:20px;font-weight:bold;text-decoration:none}" +
+                            "</style></head><body>$media" +
+                            "<a class=\"b\" href=\"/h/${f.name}?dl=1\" download=\"${f.name}\">$label</a>" +
+                            "</body></html>"
+                        call.respondText(html, ContentType.Text.Html)
                     }
                 }
                 webSocket("/ws") {
