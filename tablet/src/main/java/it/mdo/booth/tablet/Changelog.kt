@@ -21,6 +21,12 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(37, "1.32", "Telecomando e effetti sul bordo", listOf(
+            "Torcia e flash hanno lo stesso fulmine",
+            "Il pallino in alto a destra è il telecomando: verde solo se collegato, rosso altrimenti; toccalo per vedere la legenda",
+            "Messaggio animato quando il telecomando si collega o si scollega",
+            "Effetti: solo puntini sul bordo in alto; la scritta \"scorri\" sparisce dopo la scelta. Si scorre in verticale o in orizzontale",
+        )),
         Entry(36, "1.31", "Nuovi effetti e tasto torcia/flash", listOf(
             "Il tasto accanto a REC è la torcia quando sei in VIDEO e il flash quando sei in FOTO (giallo = acceso)",
             "Tanti nuovi effetti: Cinema, Dorato, Romantico, Pastello, Noir, Sbiadito e quelli simpatici (Neon, Cartoon, Anni '80, Sogno, Notte, Pop Art, Sole, Gelato, Tramonto, Oceano, Matrix, Alieno)",

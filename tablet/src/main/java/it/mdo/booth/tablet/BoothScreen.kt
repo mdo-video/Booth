@@ -1,6 +1,8 @@
 package it.mdo.booth.tablet
 
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -70,6 +72,24 @@ fun BoothScreen(
     var showSettings by remember { mutableStateOf(false) }
     var showLegend by remember { mutableStateOf(false) }
     val remoteConnected by RemoteState.connected.collectAsState()
+    // messaggio animato quando il telecomando si connette o si disconnette
+    var remoteToast by remember { mutableStateOf(false) }
+    var remoteToastOn by remember { mutableStateOf(false) }
+    var prevRemote by remember { mutableStateOf<Boolean?>(null) }
+    val openedAt = remember { System.currentTimeMillis() }
+    LaunchedEffect(remoteConnected) {
+        val was = prevRemote
+        prevRemote = remoteConnected
+        // niente messaggio nei primi secondi dopo l'apertura (il primo controllo non è un cambio vero)
+        if (was != null && was != remoteConnected && local.remoteDevice.isNotEmpty() &&
+            System.currentTimeMillis() - openedAt > 3000
+        ) {
+            remoteToastOn = remoteConnected
+            remoteToast = true
+            delay(3000)
+            remoteToast = false
+        }
+    }
     val ctx = LocalContext.current
     // icona del telecomando: PNG scontornato in assets/remote_icon.png
     val remoteIcon = remember {
@@ -270,24 +290,31 @@ fun BoothScreen(
             Box(
                 Modifier.fillMaxSize().padding(previewPadding(local.borderMode))
                     .pointerInput(Unit) {
-                        var acc = 0f
-                        detectVerticalDragGestures(
-                            onDragStart = { acc = 0f },
+                        var acc = Offset.Zero
+                        detectDragGestures(
+                            onDragStart = { acc = Offset.Zero },
                             onDragEnd = {
-                                if (kotlin.math.abs(acc) > 100f) {
+                                // si scorre in verticale o in orizzontale: conta l'asse con più movimento
+                                val d = if (kotlin.math.abs(acc.x) > kotlin.math.abs(acc.y)) acc.x else acc.y
+                                if (kotlin.math.abs(d) > 100f) {
                                     val ids = Filters.all.map { it.id }
                                     val i = ids.indexOf(shownFilterState).coerceAtLeast(0)
-                                    val n = if (acc < 0) (i + 1) % ids.size else (i - 1 + ids.size) % ids.size
+                                    val n = if (d < 0) (i + 1) % ids.size else (i - 1 + ids.size) % ids.size
                                     FilterState.override = ids[n]
                                     filterToast = Filters.label(Filters.get(ids[n]))
                                     client.set(JSONObject().put("filter", ids[n]))
                                 }
                             },
-                            onVerticalDrag = { change, dragAmount -> change.consume(); acc += dragAmount },
+                            onDrag = { change, dragAmount -> change.consume(); acc += dragAmount },
                         )
                     },
+            )
+            // sul bordo superiore: solo i puntini degli effetti
+            Box(
+                Modifier.align(Alignment.TopCenter).fillMaxWidth().height(if (wide) 104.dp else 56.dp).padding(bottom = 10.dp),
+                contentAlignment = Alignment.BottomCenter,
             ) {
-                FilterHint(shownFilter, Modifier.align(Alignment.CenterStart).padding(start = 82.dp))
+                FilterHint(shownFilter)
             }
         }
         if (!connected) {
@@ -309,6 +336,29 @@ fun BoothScreen(
                 Text("$processingPct%", color = Color(0xFFFFC107), fontSize = 56.sp, fontWeight = FontWeight.Bold)
             }
         }
+        // telecomando collegato / scollegato: compare dall'alto e sparisce dopo 3 secondi
+        androidx.compose.animation.AnimatedVisibility(
+            visible = remoteToast,
+            enter = androidx.compose.animation.slideInVertically { -it } + androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.slideOutVertically { -it } + androidx.compose.animation.fadeOut(),
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 20.dp),
+        ) {
+            val tone = if (remoteToastOn) Color(0xFF43A047) else Color(0xFFE53935)
+            Row(
+                Modifier.clip(RoundedCornerShape(28.dp)).background(Color(0xF21D1026))
+                    .border(2.dp, tone, RoundedCornerShape(28.dp))
+                    .padding(horizontal = 26.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+            ) {
+                Box(Modifier.size(14.dp).clip(CircleShape).background(tone))
+                Text(
+                    if (remoteToastOn) Lang.t("Telecomando collegato", "Remote connected")
+                    else Lang.t("Telecomando scollegato", "Remote disconnected"),
+                    color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold,
+                )
+            }
+        }
         banner?.let {
             Text(it, color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.TopCenter).padding(top = 20.dp)
@@ -319,9 +369,8 @@ fun BoothScreen(
         // in alto a destra: telecomando e Wi-Fi/QR
         if (wide && !recording && !starting && !processing && countdown == 0) {
             TopPills(
-                remotePaired = false,
+                remotePaired = local.remoteDevice.isNotEmpty(),
                 remoteConnected = remoteConnected,
-                phoneConnected = connected,
                 onRemote = { showLegend = !showLegend },
                 onWifi = { qr = QrRequest(null) },
                 modifier = Modifier.align(Alignment.TopEnd).padding(top = 48.dp, end = 160.dp),
@@ -376,6 +425,9 @@ fun BoothScreen(
                     }
                 }
             }
+        }
+        // legenda del telecomando (vale per tutti i layout)
+        if (!recording && !starting && !processing && countdown == 0) {
             if (showLegend && local.remoteDevice.isNotEmpty()) {
                 val legendLines = buildList {
                     if (hasTake) {

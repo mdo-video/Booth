@@ -45,7 +45,7 @@ fun CameraControls(client: BoothClient, info: JSONObject, modifier: Modifier = M
     ) {
         if (info.optBoolean("hasTorch")) {
             val on = info.optBoolean("torch")
-            ControlButton(R.drawable.ic_torch, Lang.t("TORCIA", "TORCH"), on) {
+            ControlButton(R.drawable.ic_bolt, Lang.t("TORCIA", "TORCH"), on) {
                 client.set(JSONObject().put("torch", !on))
             }
         }
