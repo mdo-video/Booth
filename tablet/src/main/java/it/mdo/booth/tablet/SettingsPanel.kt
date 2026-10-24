@@ -91,6 +91,8 @@ fun SettingsPanel(
 
             FrameSettings(client, info, frames, onPickFrame)
 
+            SplashSettings()
+
             BorderSettings(local)
 
             DashSettings(dashCfg)
@@ -293,6 +295,34 @@ private fun FrameSettings(client: BoothClient, info: JSONObject?, frames: FrameS
     Text(
         "Serve un PNG trasparente, oppure un'immagine con il centro bianco (viene resa trasparente). " +
             "Funziona con foto e video orizzontali 16:9. Sui video l'elaborazione richiede qualche secondo dopo lo stop.",
+        color = Color.Gray, fontSize = 13.sp,
+    )
+}
+
+@Composable
+private fun SplashSettings() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    Section("SPLASH INIZIALE")
+    val bmp = SplashStore.bitmap
+    if (bmp == null) {
+        Text("Nessuna splash caricata.", color = Color.Gray, fontSize = 14.sp)
+    } else {
+        Box(Modifier.fillMaxWidth().aspectRatio(bmp.width.toFloat() / bmp.height).background(Color(0xFF2B2F36))) {
+            Image(
+                bitmap = remember(bmp) { bmp.asImageBitmap() },
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+            )
+        }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Chip("Scegli…", false) { SplashStore.pick?.invoke() }
+        if (bmp != null) Chip("Prova", false) { SplashStore.visible = true }
+        if (bmp != null) Chip("Rimuovi", false) { SplashStore.clear(ctx) }
+    }
+    Text(
+        "Un PNG o JPG a tutto schermo: compare all'apertura dell'app per 4 secondi (o finché lo tocchi).",
         color = Color.Gray, fontSize = 13.sp,
     )
 }

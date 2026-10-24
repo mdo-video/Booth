@@ -24,7 +24,7 @@ fun FilterStrip(current: String, onPick: (String) -> Unit, modifier: Modifier = 
         modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Filters.all.forEach { f ->
+        Filters.shown.forEach { f ->
             val sel = f.id == current
             Text(
                 Filters.label(f),

@@ -49,12 +49,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -243,6 +245,18 @@ class DedicheApi(private val ctx: Context) {
         }
     }
 
+    /** Elimina una dedica dal telefono camera (la copia già salvata in Galleria sul telefono camera resta). */
+    suspend fun delete(d: Dedica): Boolean {
+        val u = url("del", d.name) ?: return false
+        return withContext(Dispatchers.IO) {
+            try {
+                http.newCall(Request.Builder().url(u).post("".toRequestBody()).build()).execute().use { it.isSuccessful }
+            } catch (e: Exception) {
+                false
+            }
+        }
+    }
+
     fun markDownloaded(name: String) {
         downloaded = downloaded + name
         prefs.edit().putStringSet("dedicheScaricate", downloaded).apply()
@@ -260,6 +274,9 @@ fun DedicheTab(api: DedicheApi) {
     var status by remember { mutableStateOf("") }
     var result by remember { mutableStateOf("") }
     var showIp by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
+    LaunchedEffect(confirmDelete) { if (confirmDelete) { delay(4000); confirmDelete = false } }
+    LaunchedEffect(selected) { confirmDelete = false }
 
     // all'apertura e quando il telefono camera viene trovato (o cambia l'IP)
     LaunchedEffect(api.base) { api.refresh() }
@@ -321,7 +338,29 @@ fun DedicheTab(api: DedicheApi) {
             }
         }
 
-        Box(Modifier.padding(bottom = 10.dp)) {
+        Row(Modifier.padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (selected.isNotEmpty() && !busy) {
+                Chip(if (confirmDelete) "Tocca ancora: elimina ${selected.size}" else "🗑 Elimina (${selected.size})", confirmDelete) {
+                    if (!confirmDelete) { confirmDelete = true; return@Chip }
+                    confirmDelete = false
+                    scope.launch {
+                        busy = true
+                        result = ""
+                        val todo = api.items.filter { it.name in selected }
+                        var ok = 0
+                        todo.forEachIndexed { i, d ->
+                            status = "Elimino ${i + 1}/${todo.size}…"
+                            if (api.delete(d)) ok++
+                        }
+                        delay(500)
+                        api.refresh()
+                        busy = false
+                        status = ""
+                        selected = emptySet()
+                        result = if (ok == todo.size) "✓ $ok eliminati" else "Eliminati $ok su ${todo.size}: riprova per gli altri"
+                    }
+                }
+            }
             Chip(if (busy) status else "⬇ Scarica in Galleria (${selected.size})", selected.isNotEmpty() || busy) {
                 if (busy || selected.isEmpty()) return@Chip
                 scope.launch {

@@ -82,6 +82,15 @@ class StreamServer(
                         call.respond(HttpStatusCode.BadRequest)
                     }
                 }
+                post("/del/{name}") {
+                    val n = call.parameters["name"].orEmpty()
+                    if (n.endsWith(".mp4") || n.endsWith(".jpg")) {
+                        onCommand("DEL:" + n)
+                        call.respondText("OK")
+                    } else {
+                        call.respond(HttpStatusCode.BadRequest)
+                    }
+                }
                 get("/list") {
                     call.respondText(historyList(), ContentType.Application.Json)
                 }

@@ -93,6 +93,18 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val pickSplash = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            Thread {
+                val ok = SplashStore.importUri(this, uri)
+                runOnUiThread {
+                    if (ok) SplashStore.visible = true
+                    else Toast.makeText(this, "Immagine non valida", Toast.LENGTH_SHORT).show()
+                }
+            }.start()
+        }
+    }
+
     /** tiene aggiornata l'icona del telecomando (collegato / non collegato) */
     private val inputListener = object : InputManager.InputDeviceListener {
         override fun onInputDeviceAdded(deviceId: Int) { RemoteState.refresh(local) }
@@ -121,6 +133,8 @@ class MainActivity : ComponentActivity() {
         local = LocalSettings(getSharedPreferences("booth_tablet", MODE_PRIVATE))
         getSystemService(InputManager::class.java)?.registerInputDeviceListener(inputListener, null)
         RemoteState.refresh(local)
+        SplashStore.load(this)
+        SplashStore.pick = { chooseSplash() }
         frames = FrameStore(this).also { it.load() }
         if (frames.bitmap == null && !local.frameDefaultDone) {
             // prima apertura: cornice "Gaia +30" già pronta e attiva
@@ -163,6 +177,14 @@ class MainActivity : ComponentActivity() {
         local.kiosk = false
         local.save()
         pickFrame.launch("image/*")
+    }
+
+    /** Apre la galleria per scegliere la splash (il kiosk blocca le altre app: si disattiva). */
+    private fun chooseSplash() {
+        runCatching { stopLockTask() }
+        local.kiosk = false
+        local.save()
+        pickSplash.launch("image/*")
     }
 
     private fun setKiosk(on: Boolean) {

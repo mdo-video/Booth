@@ -67,6 +67,15 @@ object Filters {
     val custom: List<F> get() = customList
     val all: List<F> get() = builtin + customList
 
+    /** Effetti mostrati agli ospiti: massimo 7 (Normale + i migliori). Quelli personalizzati prendono i posti in fondo. */
+    private val PICK = listOf("none", "cinema", "gold", "romantic", "noir", "vintage", "neon")
+    val shown: List<F>
+        get() {
+            val c = customList.take(7)
+            val base = PICK.mapNotNull { id -> builtin.firstOrNull { it.id == id } }
+            return (base.take(7 - c.size) + c).take(7)
+        }
+
     /** Legge il testo JSON degli effetti personalizzati. Restituisce null se il testo non è valido. */
     fun parseOrNull(json: String): List<F>? {
         val text = json.trim()

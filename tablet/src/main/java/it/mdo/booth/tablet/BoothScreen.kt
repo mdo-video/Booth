@@ -297,7 +297,7 @@ fun BoothScreen(
                                 // si scorre in verticale o in orizzontale: conta l'asse con più movimento
                                 val d = if (kotlin.math.abs(acc.x) > kotlin.math.abs(acc.y)) acc.x else acc.y
                                 if (kotlin.math.abs(d) > 100f) {
-                                    val ids = Filters.all.map { it.id }
+                                    val ids = Filters.shown.map { it.id }
                                     val i = ids.indexOf(shownFilterState).coerceAtLeast(0)
                                     val n = if (d < 0) (i + 1) % ids.size else (i - 1 + ids.size) % ids.size
                                     FilterState.override = ids[n]
@@ -317,6 +317,7 @@ fun BoothScreen(
                 FilterHint(shownFilter)
             }
         }
+        filterToast?.let { FilterToast(it, Modifier.align(Alignment.Center)) }
         if (!connected) {
             Text(Lang.t("Cerco il telefono…", "Looking for the phone…"), color = onBorder, fontSize = 28.sp, modifier = Modifier.align(Alignment.Center))
         }
@@ -636,6 +637,7 @@ fun BoothScreen(
             SettingsPanel(client, info, local, frames, onKiosk, onPickFrame, dashCfg) { showSettings = false }
         }
 
+        SplashOverlay()
         qr?.let { r -> QrOverlay(wifiQrPayload(local.wifiSsid, local.wifiPass), r.videoUrl) { qr = null } }
     }
 }

@@ -21,6 +21,10 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(38, "1.33", "Effetti e eliminazione dediche", listOf(
+            "Effetti ridotti a 7 (Normale, Cinema, Dorato, Romantico, Noir, Vintage, Neon)",
+            "Si possono eliminare le dediche dall'app Controllo",
+        )),
         Entry(36, "1.31", "Nuovi effetti", listOf(
             "Nuovi effetti colore su foto e video, più quelli personalizzati mandati dal tablet",
         )),

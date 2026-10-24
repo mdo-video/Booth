@@ -92,11 +92,8 @@ fun TopPills(
 /** Sul bordo superiore: i puntini degli effetti. La scritta "scorri" c'è solo finché non si sceglie un effetto. */
 @Composable
 fun FilterHint(current: String, modifier: Modifier = Modifier) {
-    val all = Filters.all
-    val idx = all.indexOfFirst { it.id == current }.coerceAtLeast(0)
-    val size = 7
-    val first = (idx - size / 2).coerceIn(0, (all.size - size).coerceAtLeast(0))
-    val last = minOf(all.size, first + size)
+    val ids = Filters.shown.map { it.id }
+    val idx = ids.indexOf(current).coerceAtLeast(0)
     Column(
         modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -111,7 +108,7 @@ fun FilterHint(current: String, modifier: Modifier = Modifier) {
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            for (i in first until last) {
+            for (i in ids.indices) {
                 val sel = i == idx
                 Box(
                     Modifier.size(if (sel) 12.dp else 8.dp).clip(CircleShape)
