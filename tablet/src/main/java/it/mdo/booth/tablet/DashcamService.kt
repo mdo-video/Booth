@@ -121,6 +121,11 @@ class DashcamService : Service() {
             clipFile = ::clipFile,
             applyConfig = ::applyConfig,
             applySettings = ::applySettings,
+            onSplash = { b ->
+                val ok = SplashStore.importBytes(applicationContext, b)
+                if (ok) main.post { SplashStore.show(false) }
+                ok
+            },
         ).also { it.start() }
         registerNsd()
         motion = MotionGuard(this, { cfg.motion }, { cfg.motionDeg }, ::onMotion).also { it.start() }
@@ -662,7 +667,10 @@ class DashcamService : Service() {
         j.optJSONObject("phone")?.let { DashState.client?.set(it) }
         j.optJSONObject("tablet")?.let { t -> main.post { applyTablet(t) } }
         j.optString("frame").takeIf { it.isNotEmpty() }?.let { a -> applyFrame(a) }
-        if (j.has("phone") || j.has("tablet") || j.has("frame")) {
+        j.optString("splash").takeIf { it.isNotEmpty() }?.let { a ->
+            main.post { if (a == "remove") SplashStore.clear(applicationContext) else if (a == "show") SplashStore.show(false) }
+        }
+        if (j.has("phone") || j.has("tablet") || j.has("frame") || j.has("splash")) {
             EventLog.add("IMPOSTAZIONI", j.keys().asSequence().joinToString(","))
         }
     }
@@ -749,6 +757,8 @@ class DashcamService : Service() {
     private fun tabletJson(): JSONObject {
         val l = DashState.local ?: return JSONObject()
         return JSONObject()
+            .put("splashIdle", l.splashIdleSec)
+            .put("splash", SplashStore.bitmap != null)
             .put("mirror", l.mirror)
             .put("countdown", l.countdown)
             .put("sound", l.sound)

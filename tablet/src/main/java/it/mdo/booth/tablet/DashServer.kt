@@ -11,6 +11,7 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.http.content.LocalFileContent
 import io.ktor.server.plugins.autohead.AutoHeadResponse
 import io.ktor.server.plugins.partialcontent.PartialContent
+import io.ktor.server.request.receive
 import io.ktor.server.request.receiveText
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
@@ -32,6 +33,7 @@ class DashServer(
     private val clipFile: (String) -> File?,
     private val applyConfig: (JSONObject) -> Unit,
     private val applySettings: (JSONObject) -> Unit,
+    private val onSplash: (ByteArray) -> Boolean = { false },
 ) {
     private var engine: ApplicationEngine? = null
 
@@ -91,6 +93,11 @@ class DashServer(
                     val body = call.receiveText()
                     val ok = runCatching { applySettings(JSONObject(body)) }.isSuccess
                     call.respondText(if (ok) "OK" else "ERR")
+                }
+                post("/splash") {
+                    if (!call.authed()) return@post
+                    val bytes = call.receive<ByteArray>()
+                    call.respondText(if (bytes.isNotEmpty() && onSplash(bytes)) "OK" else "ERR")
                 }
                 post("/config") {
                     if (!call.authed()) return@post

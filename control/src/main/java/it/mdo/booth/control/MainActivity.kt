@@ -458,6 +458,20 @@ private fun SettingsTab(api: Api, upd: UpdateManager) {
     val field = TextStyle(color = Color.White, fontSize = 18.sp)
 
     var unlockSent by remember { mutableStateOf(0L) }
+    var splashMsg by remember { mutableStateOf("") }
+    val sctx = LocalContext.current
+    val pickSplash = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) scope.launch {
+            splashMsg = "Invio…"
+            val bytes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching { sctx.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull()
+            }
+            splashMsg = if (bytes != null && api.postBytes("/splash", bytes)) "✓ Splash inviata al tablet" else "Invio non riuscito"
+            api.refresh()
+        }
+    }
     fun send(j: JSONObject) = scope.launch { api.postSettings(j) }
     fun sendPhone(k: String, v: Any) = send(JSONObject().put("phone", JSONObject().put(k, v)))
     fun sendTablet(k: String, v: Any) = send(JSONObject().put("tablet", JSONObject().put(k, v)))
@@ -564,6 +578,24 @@ private fun SettingsTab(api: Api, upd: UpdateManager) {
                     if (present) Chip("Rimuovi", false) { send(JSONObject().put("frame", "remove")) }
                 }
                 Note("Per scegliere un'altra immagine dalla galleria usa le impostazioni sul tablet.")
+            }
+
+            Card("SPLASH E SALVASCHERMO") {
+                val has = tab?.optBoolean("splash") == true
+                Text(if (has) "Splash caricata sul tablet." else "Nessuna splash caricata.", color = Color.Gray, fontSize = 14.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Chip("Scegli…", false) { pickSplash.launch("image/*") }
+                    if (has) Chip("Prova", false) { send(JSONObject().put("splash", "show")) }
+                    if (has) Chip("Rimuovi", false) { send(JSONObject().put("splash", "remove")) }
+                }
+                if (splashMsg.isNotEmpty()) Text(splashMsg, color = Color(0xFF81C784), fontSize = 14.sp)
+                Sub("Riappare dopo (inattività)")
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(0 to "Mai", 30 to "30 s", 60 to "1 min", 120 to "2 min", 300 to "5 min", 600 to "10 min").forEach { (sec, name) ->
+                        Chip(name, (tab?.optInt("splashIdle") ?: 0) == sec) { sendTablet("splashIdle", sec) }
+                    }
+                }
+                Note("PNG o JPG a tutto schermo. Con \"Mai\" compare solo all'apertura dell'app.")
             }
 
             Card("EFFETTO (STILE INSTAGRAM)") {

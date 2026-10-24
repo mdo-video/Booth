@@ -21,7 +21,7 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
-        Entry(39, "1.34", "Effetti e eliminazione dediche", listOf(
+        Entry(40, "1.35", "Effetti e eliminazione dediche", listOf(
             "Effetti ridotti a 7 (Normale, Cinema, Dorato, Romantico, Noir, Vintage, Neon)",
             "Si possono eliminare le dediche dall'app Controllo",
         )),

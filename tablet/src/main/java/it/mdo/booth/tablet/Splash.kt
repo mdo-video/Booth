@@ -59,12 +59,20 @@ object SplashStore {
     }
 
     fun importUri(ctx: Context, uri: Uri): Boolean = try {
+        val bytes = ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+        bytes != null && importBytes(ctx, bytes)
+    } catch (t: Throwable) {
+        false
+    }
+
+    /** Decodifica un PNG/JPG (rimpicciolito se enorme) e lo salva come splash. */
+    fun importBytes(ctx: Context, data: ByteArray): Boolean = try {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        ctx.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+        BitmapFactory.decodeByteArray(data, 0, data.size, bounds)
         var sample = 1
         while (maxOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= MAX_SIDE) sample *= 2
         val opts = BitmapFactory.Options().apply { inSampleSize = sample }
-        val bmp = ctx.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts) }
+        val bmp = BitmapFactory.decodeByteArray(data, 0, data.size, opts)
         if (bmp == null) {
             false
         } else {

@@ -21,11 +21,12 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
-        Entry(39, "1.34", "Effetti migliori e splash", listOf(
+        Entry(40, "1.35", "Effetti migliori e splash", listOf(
             "Effetti ridotti a 7, i migliori: Normale, Cinema, Dorato, Romantico, Noir, Vintage, Neon",
             "I puntini sono sempre 7 e corrispondono uno a uno agli effetti",
             "Quando scorri, il nome dell'effetto compare al centro e poi sparisce",
             "Nuova splash: dalle impostazioni (SPLASH INIZIALE) scegli un PNG o JPG; si vede all'apertura e riappare dopo il tempo di inattività che scegli",
+            "Galleria nelle impostazioni del tablet: tocchi una dedica per nasconderla o mostrarla nella pellicola",
             "Dediche nascoste: da Controllo le togli solo dalla pellicola, restano sul telefono camera",
         )),
         Entry(37, "1.32", "Telecomando e effetti sul bordo", listOf(

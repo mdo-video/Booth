@@ -93,6 +93,8 @@ fun SettingsPanel(
 
             SplashSettings(local)
 
+            GallerySettings(client, local)
+
             BorderSettings(local)
 
             DashSettings(dashCfg)
@@ -297,6 +299,44 @@ private fun FrameSettings(client: BoothClient, info: JSONObject?, frames: FrameS
             "Funziona con foto e video orizzontali 16:9. Sui video l'elaborazione richiede qualche secondo dopo lo stop.",
         color = Color.Gray, fontSize = 13.sp,
     )
+}
+
+@Composable
+private fun GallerySettings(client: BoothClient, local: LocalSettings) {
+    val items by client.history.collectAsState()
+    Section("GALLERIA (PELLICOLA)")
+    if (items.isEmpty()) {
+        Text("Nessuna dedica sul telefono camera.", color = Color.Gray, fontSize = 14.sp)
+    } else {
+        val hiddenCount = items.count { it.name in local.hidden }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Chip("Nascondi tutte", false) { local.hidden = local.hidden + items.map { it.name }; local.save() }
+            if (hiddenCount > 0) Chip("Mostra tutte ($hiddenCount)", false) { local.hidden = local.hidden - items.map { it.name }.toSet(); local.save() }
+        }
+        items.chunked(4).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                row.forEach { it2 ->
+                    val hid = it2.name in local.hidden
+                    val bmp by androidx.compose.runtime.produceState<android.graphics.Bitmap?>(null, it2.name) { value = client.thumb(it2.name) }
+                    Box(
+                        Modifier.weight(1f).aspectRatio(1f).clip(RoundedCornerShape(8.dp)).background(Color(0xFF2B2F36))
+                            .clickable {
+                                local.hidden = if (hid) local.hidden - it2.name else local.hidden + it2.name
+                                local.save()
+                            },
+                    ) {
+                        bmp?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
+                        if (hid) {
+                            Box(Modifier.fillMaxSize().background(Color(0xCC000000)))
+                            Text("nascosta", color = Color(0xFFFFB74D), fontSize = 11.sp, modifier = Modifier.align(Alignment.Center))
+                        }
+                    }
+                }
+                repeat(4 - row.size) { Box(Modifier.weight(1f)) }
+            }
+        }
+        Text("Tocca una dedica per nasconderla o mostrarla nella pellicola. Restano sul telefono camera.", color = Color.Gray, fontSize = 13.sp)
+    }
 }
 
 @Composable

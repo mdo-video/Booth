@@ -101,6 +101,17 @@ class Api(ctx: Context) {
         }
     }
 
+    /** Invia un file grezzo al tablet (es. l'immagine della splash). */
+    suspend fun postBytes(path: String, bytes: ByteArray): Boolean = withContext(Dispatchers.IO) {
+        val b = base ?: return@withContext false
+        runCatching {
+            http.newCall(
+                Request.Builder().url("$b$path?k=$key")
+                    .post(bytes.toRequestBody("application/octet-stream".toMediaType())).build()
+            ).execute().use { it.isSuccessful }
+        }.getOrDefault(false)
+    }
+
     suspend fun refresh() = withContext(Dispatchers.IO) {
         val b = base ?: return@withContext
         try {

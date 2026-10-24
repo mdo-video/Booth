@@ -21,9 +21,10 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
-        Entry(39, "1.34", "Nascondi dediche dalla galleria", listOf(
+        Entry(40, "1.35", "Nascondi dediche dalla galleria", listOf(
             "Nel tab Dediche: seleziona le dediche (anche i test) e tocca Nascondi: spariscono solo dalla pellicola del tablet. \"Mostra nascoste\" le rimette",
             "Effetti ridotti a 7 anche qui",
+            "Impostazioni: nuova scheda Splash e salvaschermo (scegli l'immagine, prova, rimuovi e decidi dopo quanto riappare), come sul tablet",
         )),
         Entry(36, "1.31", "Nuovi effetti", listOf(
             "La scelta dell'effetto mostra tutti gli effetti, anche quelli personalizzati",
