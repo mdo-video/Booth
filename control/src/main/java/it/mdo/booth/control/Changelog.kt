@@ -21,8 +21,8 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
-        Entry(38, "1.33", "Elimina dediche dalla galleria", listOf(
-            "Nel tab Dediche: seleziona le dediche (anche i test) e tocca Elimina; si chiede una seconda conferma",
+        Entry(39, "1.34", "Nascondi dediche dalla galleria", listOf(
+            "Nel tab Dediche: seleziona le dediche (anche i test) e tocca Nascondi: spariscono solo dalla pellicola del tablet. \"Mostra nascoste\" le rimette",
             "Effetti ridotti a 7 anche qui",
         )),
         Entry(36, "1.31", "Nuovi effetti", listOf(

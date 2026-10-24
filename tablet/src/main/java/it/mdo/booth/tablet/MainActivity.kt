@@ -50,6 +50,11 @@ class LocalSettings(private val prefs: SharedPreferences) {
     /** effetti personalizzati (testo JSON), mandati anche al telefono */
     var customFilters by mutableStateOf(prefs.getString("customFilters", "") ?: "")
 
+    /** dediche nascoste dalla pellicola (restano sul telefono camera) */
+    var hidden by mutableStateOf(prefs.getStringSet("hidden", emptySet())?.toSet() ?: emptySet())
+    /** dopo quanti secondi di inattività ricompare la splash (0 = mai, solo all'apertura) */
+    var splashIdleSec by mutableIntStateOf(prefs.getInt("splashIdleSec", 0))
+
     init { Lang.en = lang == "en"; Filters.setCustom(customFilters) }
 
     fun save() {
@@ -69,6 +74,8 @@ class LocalSettings(private val prefs: SharedPreferences) {
             .putString("lang", lang)
             .putBoolean("filtersUi", filtersUi)
             .putString("customFilters", customFilters)
+            .putStringSet("hidden", hidden)
+            .putInt("splashIdleSec", splashIdleSec)
             .putInt("borderMode", borderMode)
             .putInt("borderColor", borderColor)
             .apply()
@@ -98,7 +105,7 @@ class MainActivity : ComponentActivity() {
             Thread {
                 val ok = SplashStore.importUri(this, uri)
                 runOnUiThread {
-                    if (ok) SplashStore.visible = true
+                    if (ok) SplashStore.show(false)
                     else Toast.makeText(this, "Immagine non valida", Toast.LENGTH_SHORT).show()
                 }
             }.start()
@@ -198,8 +205,14 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        SplashStore.touch()
         if (::local.isInitialized && RemoteInput.handle(event, local)) return true
         return super.dispatchKeyEvent(event)
+    }
+
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        SplashStore.touch()
     }
 
     override fun onDestroy() {

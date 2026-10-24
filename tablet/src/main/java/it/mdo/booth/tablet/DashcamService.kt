@@ -676,6 +676,12 @@ class DashcamService : Service() {
         if (t.has("welcome")) l.welcome = t.getString("welcome").take(60)
         if (t.has("wifiSsid")) l.wifiSsid = t.getString("wifiSsid").take(60)
         if (t.has("wifiPass")) l.wifiPass = t.getString("wifiPass").take(63)
+        if (t.has("splashIdle")) l.splashIdleSec = t.getInt("splashIdle").coerceIn(0, 7200)
+        t.optJSONArray("hide")?.let { a -> l.hidden = l.hidden + List(a.length()) { a.getString(it) } }
+        t.optJSONArray("unhide")?.let { a ->
+            val names = List(a.length()) { a.getString(it) }
+            l.hidden = if ("*" in names) emptySet() else l.hidden - names.toSet()
+        }
         if (t.has("kiosk")) {
             l.kiosk = t.getBoolean("kiosk")
             DashState.kioskHook?.invoke(l.kiosk)
@@ -706,6 +712,8 @@ class DashcamService : Service() {
         val upd = DashState.updates?.status?.value
         return JSONObject()
             .put("app", "tablet")
+            .put("hidden", JSONArray(DashState.local?.hidden?.toList() ?: emptyList<String>()))
+            .put("splashIdle", DashState.local?.splashIdleSec ?: 0)
             .put("version", DashState.updates?.installedName() ?: "")
             .put("code", DashState.updates?.installedCode() ?: 0)
             .put("now", System.currentTimeMillis())

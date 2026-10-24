@@ -58,6 +58,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -266,7 +267,7 @@ class DedicheApi(private val ctx: Context) {
 private val dedicheDate = SimpleDateFormat("dd/MM HH:mm", Locale.ITALY)
 
 @Composable
-fun DedicheTab(api: DedicheApi) {
+fun DedicheTab(api: DedicheApi, tablet: Api) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var selected by remember { mutableStateOf(setOf<String>()) }
@@ -274,9 +275,8 @@ fun DedicheTab(api: DedicheApi) {
     var status by remember { mutableStateOf("") }
     var result by remember { mutableStateOf("") }
     var showIp by remember { mutableStateOf(false) }
-    var confirmDelete by remember { mutableStateOf(false) }
-    LaunchedEffect(confirmDelete) { if (confirmDelete) { delay(4000); confirmDelete = false } }
-    LaunchedEffect(selected) { confirmDelete = false }
+    // dediche nascoste sul tablet (le manda il tablet nello stato)
+    val hidden: Set<String> = tablet.status?.optJSONArray("hidden")?.let { a -> List(a.length()) { a.getString(it) }.toSet() } ?: emptySet()
 
     // all'apertura e quando il telefono camera viene trovato (o cambia l'IP)
     LaunchedEffect(api.base) { api.refresh() }
@@ -319,6 +319,7 @@ fun DedicheTab(api: DedicheApi) {
                 DedicaCell(
                     api = api,
                     d = d,
+                    hidden = d.name in hidden,
                     selected = d.name in selected,
                     onToggle = { selected = if (d.name in selected) selected - d.name else selected + d.name },
                     onOpen = {
@@ -340,24 +341,20 @@ fun DedicheTab(api: DedicheApi) {
 
         Row(Modifier.padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (selected.isNotEmpty() && !busy) {
-                Chip(if (confirmDelete) "Tocca ancora: elimina ${selected.size}" else "🗑 Elimina (${selected.size})", confirmDelete) {
-                    if (!confirmDelete) { confirmDelete = true; return@Chip }
-                    confirmDelete = false
+                Chip("🙈 Nascondi (${selected.size})", false) {
+                    val names = selected.toList()
+                    selected = emptySet()
+                    result = "✓ ${names.size} nascoste dalla galleria del tablet (restano sul telefono camera)"
                     scope.launch {
-                        busy = true
-                        result = ""
-                        val todo = api.items.filter { it.name in selected }
-                        var ok = 0
-                        todo.forEachIndexed { i, d ->
-                            status = "Elimino ${i + 1}/${todo.size}…"
-                            if (api.delete(d)) ok++
-                        }
-                        delay(500)
-                        api.refresh()
-                        busy = false
-                        status = ""
-                        selected = emptySet()
-                        result = if (ok == todo.size) "✓ $ok eliminati" else "Eliminati $ok su ${todo.size}: riprova per gli altri"
+                        tablet.postSettings(JSONObject().put("tablet", JSONObject().put("hide", JSONArray(names))))
+                    }
+                }
+            }
+            if (hidden.isNotEmpty() && !busy) {
+                Chip("👁 Mostra nascoste (${hidden.size})", false) {
+                    result = "✓ Nascoste di nuovo visibili"
+                    scope.launch {
+                        tablet.postSettings(JSONObject().put("tablet", JSONObject().put("unhide", JSONArray(listOf("*")))))
                     }
                 }
             }
@@ -390,7 +387,7 @@ fun DedicheTab(api: DedicheApi) {
 }
 
 @Composable
-private fun DedicaCell(api: DedicheApi, d: Dedica, selected: Boolean, onToggle: () -> Unit, onOpen: () -> Unit) {
+private fun DedicaCell(api: DedicheApi, d: Dedica, hidden: Boolean, selected: Boolean, onToggle: () -> Unit, onOpen: () -> Unit) {
     val bmp by produceState<Bitmap?>(null, d.name, api.base) { value = api.thumb(d) }
     Box(
         Modifier.aspectRatio(1f).clip(RoundedCornerShape(10.dp)).background(Color(0xFF1B1E25)).clickable { onToggle() }
@@ -415,6 +412,14 @@ private fun DedicaCell(api: DedicheApi, d: Dedica, selected: Boolean, onToggle: 
             color = Color.White,
             modifier = Modifier.align(Alignment.BottomEnd).padding(4.dp).background(Color(0x99000000), RoundedCornerShape(6.dp)).padding(horizontal = 4.dp),
         )
+        if (hidden) {
+            Text(
+                "nascosta",
+                fontSize = 11.sp,
+                color = Color(0xFFFFB74D),
+                modifier = Modifier.align(Alignment.CenterStart).padding(4.dp).background(Color(0x99000000), RoundedCornerShape(6.dp)).padding(horizontal = 4.dp),
+            )
+        }
         if (d.name in api.downloaded) {
             Text(
                 "scaricata",

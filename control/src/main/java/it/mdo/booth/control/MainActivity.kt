@@ -253,7 +253,7 @@ fun ControlApp(api: Api, upd: UpdateManager) {
                 1 -> LiveTab(api)
                 2 -> LogTab(api)
                 3 -> ClipsTab(api)
-                4 -> DedicheTab(dediche)
+                4 -> DedicheTab(dediche, api)
                 else -> SettingsTab(api, upd)
             }
         }

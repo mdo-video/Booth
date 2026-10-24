@@ -91,7 +91,7 @@ fun SettingsPanel(
 
             FrameSettings(client, info, frames, onPickFrame)
 
-            SplashSettings()
+            SplashSettings(local)
 
             BorderSettings(local)
 
@@ -300,7 +300,7 @@ private fun FrameSettings(client: BoothClient, info: JSONObject?, frames: FrameS
 }
 
 @Composable
-private fun SplashSettings() {
+private fun SplashSettings(local: LocalSettings) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     Section("SPLASH INIZIALE")
     val bmp = SplashStore.bitmap
@@ -318,11 +318,17 @@ private fun SplashSettings() {
     }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Chip("Scegli…", false) { SplashStore.pick?.invoke() }
-        if (bmp != null) Chip("Prova", false) { SplashStore.visible = true }
+        if (bmp != null) Chip("Prova", false) { SplashStore.show(false) }
         if (bmp != null) Chip("Rimuovi", false) { SplashStore.clear(ctx) }
     }
+    Label("Riappare dopo (inattività):")
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf(0 to "Mai", 30 to "30 s", 60 to "1 min", 120 to "2 min", 300 to "5 min", 600 to "10 min").forEach { (sec, name) ->
+            Chip(name, local.splashIdleSec == sec) { local.splashIdleSec = sec; local.save() }
+        }
+    }
     Text(
-        "Un PNG o JPG a tutto schermo: compare all'apertura dell'app per 4 secondi (o finché lo tocchi).",
+        "Un PNG o JPG a tutto schermo: compare all'apertura per 4 secondi. Con un tempo scelto qui riappare dopo quell'inattività e resta finché tocchi lo schermo.",
         color = Color.Gray, fontSize = 13.sp,
     )
 }

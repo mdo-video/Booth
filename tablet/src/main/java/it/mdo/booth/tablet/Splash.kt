@@ -30,6 +30,16 @@ object SplashStore {
         private set
     /** vero finché la splash è a schermo */
     var visible by mutableStateOf(false)
+    /** vero se è comparsa per inattività: resta finché non si tocca lo schermo */
+    var hold by mutableStateOf(false)
+    /** ultimo tocco o tasto (serve al timer di inattività) */
+    @Volatile var lastActivity = System.currentTimeMillis()
+
+    fun touch() { lastActivity = System.currentTimeMillis() }
+
+    fun show(hold: Boolean) { this.hold = hold; visible = true }
+
+    fun dismiss() { visible = false; hold = false; touch() }
 
     /** Apre la galleria per scegliere l'immagine (lo imposta MainActivity). */
     var pick: (() -> Unit)? = null
@@ -43,7 +53,7 @@ object SplashStore {
             val f = file(ctx)
             if (f.isFile) {
                 bitmap = BitmapFactory.decodeFile(f.absolutePath)
-                visible = bitmap != null
+                if (bitmap != null) show(false)
             }
         }
     }
@@ -75,17 +85,17 @@ object SplashStore {
     }
 }
 
-/** Splash a tutto schermo sopra a tutto: sparisce da sola dopo 4 secondi o toccandola. */
+/** Splash a tutto schermo sopra a tutto: all'apertura sparisce da sola dopo 4 secondi; se è comparsa per inattività resta finché non si tocca. */
 @Composable
 fun SplashOverlay() {
     val bmp = SplashStore.bitmap
     if (!SplashStore.visible || bmp == null) return
-    LaunchedEffect(Unit) { delay(4000); SplashStore.visible = false }
+    LaunchedEffect(SplashStore.hold) { if (!SplashStore.hold) { delay(4000); SplashStore.dismiss() } }
     Box(
         Modifier.fillMaxSize().background(Color.Black).clickable(
             interactionSource = remember { MutableInteractionSource() },
             indication = null,
-        ) { SplashStore.visible = false },
+        ) { SplashStore.dismiss() },
     ) {
         Image(
             bitmap = remember(bmp) { bmp.asImageBitmap() },

@@ -63,7 +63,8 @@ fun BoothScreen(
     val connected by client.connected.collectAsState()
     val state by client.state.collectAsState()
     val info by client.info.collectAsState()
-    val history by client.history.collectAsState()
+    val allHistory by client.history.collectAsState()
+    val history = allHistory.filter { it.name !in local.hidden }
 
     var starting by remember { mutableStateOf(false) }
     var countdown by remember { mutableIntStateOf(0) }
@@ -135,6 +136,18 @@ fun BoothScreen(
         }
     }
     LaunchedEffect(recording) { if (recording) { viewing = null; qr = null } }
+    // salvaschermo: dopo X secondi senza tocchi riappare la splash (se caricata e se il timer non è "mai")
+    val idleBusy by rememberUpdatedState(recording || starting || countdown > 0 || processing || hasTake || showSettings || showPin || qr != null || viewing != null)
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1000)
+            val idle = local.splashIdleSec
+            val busy = idleBusy
+            if (idle > 0 && SplashStore.bitmap != null && !SplashStore.visible && !busy &&
+                System.currentTimeMillis() - SplashStore.lastActivity >= idle * 1000L
+            ) SplashStore.show(true)
+        }
+    }
     // effetti personalizzati: si mandano al telefono quando ci si collega e dopo ogni modifica
     LaunchedEffect(connected, hasInfo, local.customFilters) {
         delay(600)
@@ -218,6 +231,7 @@ fun BoothScreen(
 
     // telecomando Bluetooth a un tasto (singola / doppia / tripla / quadrupla / lunga)
     val remoteHandler: (RemoteGesture) -> Unit = handler@{ g ->
+        if (SplashStore.visible) { SplashStore.dismiss(); return@handler }
         if (showSettings || showPin || processing) return@handler
         fun ack() { if (local.sound) tone?.startTone(ToneGenerator.TONE_PROP_ACK, 120) }
         // QR a schermo: qualsiasi pressione lo chiude
