@@ -1,10 +1,14 @@
 package it.mdo.booth.camera
 
 import android.content.pm.ActivityInfo
+import android.content.res.Configuration
 import android.Manifest
+import android.graphics.drawable.GradientDrawable
+import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.TypedValue
 import android.view.GestureDetector
 import android.view.Gravity
 import android.view.MotionEvent
@@ -15,14 +19,27 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import android.view.WindowManager
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var status: TextView
+    // stessi colori dell'app Controllo
+    private val cBg = 0xFF101216.toInt()
+    private val cCard = 0xFF1B1E25.toInt()
+    private val cChip = 0xFF2A2E38.toInt()
+    private val cBlue = 0xFF3D5AFE.toInt()
+    private val cTitle = 0xFF9AA0AC.toInt()
+    private val cSub = 0xFFB0B5C0.toInt()
+    private val cGreen = 0xFF66BB6A.toInt()
+    private val cGreenTxt = 0xFF81C784.toInt()
+    private val cAmber = 0xFFFFB300.toInt()
+    private val cRed = 0xFFFF5252.toInt()
+
     private lateinit var updText: TextView
     private lateinit var updBtn: Button
     private lateinit var updates: UpdateManager
@@ -30,6 +47,32 @@ class MainActivity : AppCompatActivity() {
     private var server: StreamServer? = null
     private var nsd: NsdAdvertiser? = null
     private var motion: MotionGuard? = null
+
+    // schede dell'interfaccia
+    private lateinit var body: LinearLayout
+    private lateinit var left: LinearLayout
+    private lateinit var right: LinearLayout
+    private lateinit var stateCard: LinearLayout
+    private lateinit var screenCard: LinearLayout
+    private lateinit var screenSpacer: View
+    private lateinit var pillBox: LinearLayout
+    private lateinit var pillDot: View
+    private lateinit var pillText: TextView
+    private lateinit var stateDot: View
+    private lateinit var stateLabel: TextView
+    private lateinit var stateSub: TextView
+    private lateinit var progTrack: LinearLayout
+    private lateinit var progFill: View
+    private lateinit var valTablet: TextView
+    private lateinit var valQuality: TextView
+    private lateinit var valOrient: TextView
+    private lateinit var valMic: TextView
+
+    // stato mostrato
+    private var curState = "READY"
+    private var permError = false
+    private var recStart = 0L
+    private var info = JSONObject()
 
     // schermo nero (AMOLED): resta solo un puntino di funzionamento, doppio tocco per uscire
     private lateinit var overlay: FrameLayout
@@ -51,26 +94,274 @@ class MainActivity : AppCompatActivity() {
             ui.postDelayed(this, 5000)
         }
     }
+    // ogni secondo: collegamento al tablet e tempo di registrazione
+    private val uiTick = object : Runnable {
+        override fun run() {
+            render()
+            ui.postDelayed(this, 1000)
+        }
+    }
+
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density + 0.5f).toInt()
+
+    private fun roundBg(color: Int, radiusDp: Int) = GradientDrawable().apply {
+        setColor(color)
+        cornerRadius = dp(radiusDp).toFloat()
+    }
+
+    private fun ovalBg(color: Int) = GradientDrawable().apply {
+        shape = GradientDrawable.OVAL
+        setColor(color)
+    }
+
+    private fun tv(text: String, sp: Float, color: Int, bold: Boolean = false) = TextView(this).apply {
+        this.text = text
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, sp)
+        setTextColor(color)
+        if (bold) setTypeface(typeface, Typeface.BOLD)
+    }
+
+    private fun card(title: String): LinearLayout = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        background = roundBg(cCard, 16)
+        setPadding(dp(16), dp(16), dp(16), dp(16))
+        addView(tv(title, 13f, cTitle, true).apply { letterSpacing = 0.04f })
+    }
+
+    private fun chipBtn(text: String, bg: Int, textSp: Float = 15f) = Button(this).apply {
+        this.text = text
+        isAllCaps = false
+        setTextColor(0xFFFFFFFF.toInt())
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, textSp)
+        background = roundBg(bg, 24)
+        stateListAnimator = null
+        minHeight = dp(44)
+        minimumHeight = dp(44)
+        setPadding(dp(14), 0, dp(14), 0)
+    }
+
+    private fun lp(w: Int, h: Int, weight: Float = 0f, top: Int = 0) =
+        LinearLayout.LayoutParams(w, h, weight).apply { topMargin = dp(top) }
+
+    /** Riga "etichetta ... valore" dentro la scheda Stato. */
+    private fun line(label: String): TextView {
+        val value = tv("—", 14f, 0xFFFFFFFF.toInt(), true)
+        stateCard.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(tv(label, 14f, cSub), lp(0, -2, 1f))
+            addView(value, lp(-2, -2))
+        }, lp(-1, -2, top = 6))
+        return value
+    }
+
+    private fun buildUi(): View {
+        val wrap = -2
+        val match = -1
+
+        left = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        right = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+
+        // intestazione: logo, nome, versione e stato del tablet
+        val logo = FrameLayout(this).apply {
+            background = roundBg(cBlue, 14)
+            addView(ImageView(this@MainActivity).apply { setImageResource(R.drawable.ic_booth_logo) },
+                FrameLayout.LayoutParams(dp(24), dp(24), Gravity.CENTER))
+        }
+        val titles = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(tv("Booth Camera", 22f, 0xFFFFFFFF.toInt(), true))
+            addView(tv("Telefono camera · v${BuildConfig.VERSION_NAME}", 13f, cTitle))
+        }
+        pillDot = View(this)
+        pillText = tv("", 14f, 0xFFFFFFFF.toInt(), true)
+        pillBox = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(14), dp(8), dp(14), dp(8))
+            addView(pillDot, lp(dp(10), dp(10)).apply { rightMargin = dp(8) })
+            addView(pillText)
+        }
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(logo, lp(dp(44), dp(44)).apply { rightMargin = dp(12) })
+            addView(titles, lp(0, wrap, 1f))
+            addView(pillBox, lp(wrap, wrap))
+        }
+        left.addView(header, lp(match, wrap))
+
+        // scheda STATO
+        stateCard = card("STATO")
+        stateDot = View(this)
+        stateLabel = tv("", 28f, 0xFFFFFFFF.toInt(), true)
+        stateCard.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(stateDot, lp(dp(16), dp(16)).apply { rightMargin = dp(12) })
+            addView(stateLabel)
+        }, lp(match, wrap, top = 8))
+        stateSub = tv("", 14f, cSub)
+        stateCard.addView(stateSub, lp(match, wrap, top = 6))
+        progFill = View(this).apply { background = roundBg(cRed, 4) }
+        progTrack = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            weightSum = 100f
+            background = roundBg(cChip, 4)
+            addView(progFill, lp(0, match, 0f))
+            visibility = View.GONE
+        }
+        stateCard.addView(progTrack, lp(match, dp(8), top = 8))
+        stateCard.addView(View(this).apply { setBackgroundColor(cChip) }, lp(match, dp(1), top = 10))
+        valTablet = line("Collegato al tablet")
+        valQuality = line("Qualità video")
+        valOrient = line("Orientamento")
+        valMic = line("Microfono")
+        left.addView(stateCard, lp(match, wrap, 1f, top = 12))
+
+        // scheda AGGIORNAMENTI
+        val updCard = card("AGGIORNAMENTI")
+        updText = tv("", 14f, cSub)
+        updCard.addView(updText, lp(match, wrap, top = 8))
+        updBtn = chipBtn("Controlla", cChip)
+        val newsBtn = chipBtn("Novità", cChip).apply { setOnClickListener { Changelog.show(this@MainActivity) } }
+        updCard.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(updBtn, lp(0, wrap, 1f).apply { rightMargin = dp(4) })
+            addView(newsBtn, lp(0, wrap, 1f).apply { leftMargin = dp(4) })
+        }, lp(match, wrap, top = 10))
+        right.addView(updCard, lp(match, wrap))
+
+        // scheda SCHERMO
+        screenCard = card("SCHERMO")
+        screenCard.addView(
+            tv("Si spegne da solo dopo 1 minuto senza tocchi. Doppio tocco per riaccenderlo.", 14f, cSub),
+            lp(match, wrap, top = 8),
+        )
+        screenSpacer = View(this)
+        screenCard.addView(screenSpacer, lp(match, 0, 1f))
+        val blackBtn = chipBtn("Schermo nero", cBlue, 16f).apply {
+            setTypeface(typeface, Typeface.BOLD)
+            minHeight = dp(48)
+            minimumHeight = dp(48)
+            setOnClickListener { enterBlack() }
+        }
+        screenCard.addView(blackBtn, lp(match, wrap, top = 10))
+        right.addView(screenCard, lp(match, wrap, 1f, top = 12))
+
+        body = LinearLayout(this)
+        body.addView(left)
+        body.addView(right)
+        applyLayout()
+
+        return ScrollView(this).apply {
+            isFillViewport = true
+            setBackgroundColor(cBg)
+            setPadding(dp(24), dp(20), dp(24), dp(20))
+            clipToPadding = false
+            addView(body, FrameLayout.LayoutParams(match, match))
+        }
+    }
+
+    /** Orizzontale: due colonne. Verticale: una colonna sola. */
+    private fun applyLayout() {
+        val landscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        if (landscape) {
+            body.orientation = LinearLayout.HORIZONTAL
+            left.layoutParams = LinearLayout.LayoutParams(0, -1, 1f)
+            right.layoutParams = LinearLayout.LayoutParams(dp(340), -1).apply { leftMargin = dp(16) }
+            stateCard.layoutParams = lp(-1, 0, 1f, top = 12)
+            screenCard.layoutParams = lp(-1, 0, 1f, top = 12)
+            screenSpacer.visibility = View.VISIBLE
+        } else {
+            body.orientation = LinearLayout.VERTICAL
+            left.layoutParams = LinearLayout.LayoutParams(-1, -2)
+            right.layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) }
+            stateCard.layoutParams = lp(-1, -2, top = 12)
+            screenCard.layoutParams = lp(-1, -2, top = 12)
+            screenSpacer.visibility = View.GONE
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        applyLayout()
+    }
+
+    private fun mmss(sec: Long): String = "%02d:%02d".format(sec / 60, sec % 60)
+
+    /** Aggiorna testi e colori in base a stato, collegamento al tablet e info del telefono. */
+    private fun render() {
+        val connected = server?.hasClients() == true
+        val rec = curState == "RECORDING"
+        val label: String
+        var sub: String
+        val color: Int
+        when {
+            permError -> { label = "Servono i permessi"; sub = "Concedi fotocamera e microfono dalle impostazioni dell'app."; color = cRed }
+            !booted -> { label = "Avvio…"; sub = "Controllo permessi e fotocamera."; color = cAmber }
+            rec -> { label = "In registrazione"; sub = ""; color = cRed }
+            curState.startsWith("PROCESSING") -> {
+                label = "Elaboro il video"; sub = "${curState.substringAfter(':', "0")}%"; color = cBlue
+            }
+            !connected -> {
+                label = "In attesa del tablet"
+                sub = "Apri l'app Tablet: si collega da sola se siete sulla stessa rete Wi-Fi."
+                color = cAmber
+            }
+            curState == "TAKE_SAVED" || curState.startsWith("TAKE_SAVED") -> { label = "Salvato"; sub = "La dedica è nella galleria del telefono."; color = cGreen }
+            curState.startsWith("TAKE") -> { label = "Video pronto"; sub = "Il tablet decide se salvarlo o rifarlo."; color = cGreen }
+            else -> { label = "Pronto"; sub = "In attesa di un comando dal tablet."; color = cGreen }
+        }
+        if (rec && booted) {
+            val max = info.optInt("duration", 60).coerceAtLeast(1)
+            val el = ((System.currentTimeMillis() - recStart) / 1000).coerceAtLeast(0)
+            sub = "${mmss(el)} su ${max} s. Il tablet comanda la registrazione."
+            val pct = (el * 100f / max).coerceIn(0f, 100f)
+            (progFill.layoutParams as LinearLayout.LayoutParams).weight = pct
+            progFill.requestLayout()
+            progTrack.visibility = View.VISIBLE
+        } else {
+            progTrack.visibility = View.GONE
+        }
+        stateLabel.text = label
+        stateSub.text = sub
+        stateDot.background = ovalBg(color)
+
+        pillDot.background = ovalBg(if (connected) cGreen else cAmber)
+        pillText.text = if (connected) "Tablet collegato" else "Tablet non collegato"
+        pillBox.background = roundBg(if (connected) 0xFF1E3A22.toInt() else 0xFF3A2B0F.toInt(), 20)
+
+        valTablet.text = if (connected) "sì" else "NO"
+        valTablet.setTextColor(if (connected) cGreenTxt else cAmber)
+        valQuality.text = when (info.optString("quality")) {
+            "UHD" -> "4K"
+            "FHD" -> "Full HD"
+            "HD" -> "HD"
+            else -> "—"
+        }
+        valOrient.text = when (info.optString("orientation")) {
+            "portrait" -> "Verticale"
+            "landscape" -> "Orizzontale"
+            else -> "—"
+        }
+        val mic = info.optString("mic")
+        valMic.text = if (mic.isNotEmpty()) mic else "Telefono"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        status = TextView(this).apply {
-            textSize = 22f
-            setPadding(48, 48, 48, 48)
-            text = "Booth Camera"
+        window.decorView.setBackgroundColor(cBg)
+        @Suppress("DEPRECATION")
+        run {
+            window.statusBarColor = cBg
+            window.navigationBarColor = cBg
         }
-        updText = TextView(this).apply { textSize = 16f; setPadding(48, 0, 48, 16) }
-        updBtn = Button(this).apply { text = "Controlla aggiornamenti" }
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            addView(status)
-            addView(updText)
-            addView(updBtn)
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
         }
-        updBtn.isEnabled = true
-        val blackBtn = Button(this).apply { text = "Schermo nero"; setOnClickListener { enterBlack() } }
-        root.addView(blackBtn)
+        val root = buildUi()
         overlay = FrameLayout(this).apply {
             setBackgroundColor(0xFF000000.toInt())
             visibility = View.GONE
@@ -86,14 +377,16 @@ class MainActivity : AppCompatActivity() {
         container.addView(root)
         container.addView(overlay)
         setContentView(container)
+        render()
         ui.postDelayed(idleTick, 5000)
+        ui.postDelayed(uiTick, 1000)
 
         updates = UpdateManager(this, "booth-camera.apk", BuildConfig.UPDATE_TOKEN)
         updates.listener = { st ->
             runOnUiThread {
                 updText.text = st.text
                 updBtn.isEnabled = !st.busy
-                updBtn.text = if (st.canInstall) "Installa aggiornamento" else "Controlla aggiornamenti"
+                updBtn.text = if (st.canInstall) "Installa" else "Controlla"
             }
         }
         updBtn.setOnClickListener {
@@ -107,7 +400,8 @@ class MainActivity : AppCompatActivity() {
         window.decorView.post { Changelog.showIfNew(this, updates.installedCode()) }
 
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-            if (result[Manifest.permission.CAMERA] == true && result[Manifest.permission.RECORD_AUDIO] == true) boot() else status.text = "Servono permessi camera e microfono"
+            if (result[Manifest.permission.CAMERA] == true && result[Manifest.permission.RECORD_AUDIO] == true) boot()
+            else { permError = true; render() }
         }.launch(buildList {
             add(Manifest.permission.CAMERA)
             add(Manifest.permission.RECORD_AUDIO)
@@ -131,11 +425,21 @@ class MainActivity : AppCompatActivity() {
             onPreviewFrame = srv::sendFrame,
             onState = { s ->
                 srv.sendState(s)
-                runOnUiThread { status.text = "Booth Camera\nStato: $s" }
+                runOnUiThread {
+                    if (s == "RECORDING" && curState != "RECORDING") recStart = System.currentTimeMillis()
+                    curState = s
+                    render()
+                }
             },
             onEvent = srv::sendEvent,
             onLevel = srv::sendLevel,
-            onInfo = srv::sendInfo,
+            onInfo = { j ->
+                srv.sendInfo(j)
+                runOnUiThread {
+                    runCatching { info = JSONObject(j) }
+                    render()
+                }
+            },
             onOrientation = { o ->
                 runOnUiThread {
                     requestedOrientation = if (o == "portrait") ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
@@ -149,6 +453,7 @@ class MainActivity : AppCompatActivity() {
         cam.start()
         nsd = NsdAdvertiser(this).also { it.register(StreamServer.PORT) }
         booted = true
+        render()
         motion = MotionGuard(this, { true }, { 10 }) { kind -> if (kind != "HIT") srv.sendEvent("MOTION:$kind") }.also { it.start() }
     }
 

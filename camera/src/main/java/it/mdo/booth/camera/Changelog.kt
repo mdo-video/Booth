@@ -21,6 +21,11 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(50, "1.45", "App Camera nello stile di Controllo", listOf(
+            "Camera: nuova schermata scura a schede, uguale all'app Controllo, sviluppata in orizzontale su due colonne (in verticale diventa una colonna)",
+            "Camera: stato grande (Pronto, In registrazione, In attesa del tablet), pallino del collegamento al tablet e tempo di registrazione con barra",
+            "Camera: qualità, orientamento e microfono sempre visibili; tasti Controlla, Novità e Schermo nero",
+        )),
         Entry(49, "1.44", "Menu Dediche in ordine", listOf(
             "Controllo, scheda Dediche: i tasti sotto le miniature vanno a capo in righe ordinate e \"Elimina\" non si schiaccia più in verticale",
             "Controllo, scheda Dediche: anche i tasti in alto (Aggiorna, Nuove, Seleziona tutto, Nessuna, IP) si vedono tutti, senza scorrere",
