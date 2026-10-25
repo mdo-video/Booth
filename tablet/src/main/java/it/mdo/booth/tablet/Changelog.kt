@@ -21,6 +21,10 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(49, "1.44", "Menu Dediche in ordine", listOf(
+            "Controllo, scheda Dediche: i tasti sotto le miniature vanno a capo in righe ordinate e \"Elimina\" non si schiaccia più in verticale",
+            "Controllo, scheda Dediche: anche i tasti in alto (Aggiorna, Nuove, Seleziona tutto, Nessuna, IP) si vedono tutti, senza scorrere",
+        )),
         Entry(48, "1.43", "Dirette, impostazioni a schede e slider nuovo", listOf(
             "Tablet: la scritta \"Scorri per gli effetti\" resta sempre visibile",
             "Tablet: slider della durata più moderno, senza sfondo; valori sopra la barra e \"Durata massima\" sotto",

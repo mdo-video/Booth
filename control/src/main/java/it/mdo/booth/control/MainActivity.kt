@@ -195,7 +195,7 @@ internal fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
             .background(if (selected) Color(0xFF3D5AFE) else Color(0xFF2A2E38))
             .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 10.dp)
-    ) { Text(text, color = Color.White, fontSize = 15.sp) }
+    ) { Text(text, color = Color.White, fontSize = 15.sp, maxLines = 1, softWrap = false) }
 }
 
 @Composable

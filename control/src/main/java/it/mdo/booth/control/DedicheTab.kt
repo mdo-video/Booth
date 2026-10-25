@@ -20,6 +20,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -268,6 +270,7 @@ class DedicheApi(private val ctx: Context) {
 
 private val dedicheDate = SimpleDateFormat("dd/MM HH:mm", Locale.ITALY)
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DedicheTab(api: DedicheApi, tablet: Api) {
     val ctx = LocalContext.current
@@ -285,7 +288,7 @@ fun DedicheTab(api: DedicheApi, tablet: Api) {
     LaunchedEffect(api.base) { api.refresh() }
 
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Chip("↻ Aggiorna", false) { scope.launch { api.refresh() } }
             Chip("Nuove", false) { selected = api.items.filter { it.name !in api.downloaded }.map { it.name }.toSet() }
             Chip("Seleziona tutto", false) { selected = api.items.map { it.name }.toSet() }
@@ -347,7 +350,11 @@ fun DedicheTab(api: DedicheApi, tablet: Api) {
             }
         }
 
-        Row(Modifier.padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(
+            Modifier.fillMaxWidth().padding(bottom = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             if (selected.isNotEmpty() && !busy) {
                 Chip("🙈 Nascondi (${selected.size})", false) {
                     val names = selected.toList()
