@@ -67,6 +67,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var valQuality: TextView
     private lateinit var valOrient: TextView
     private lateinit var valMic: TextView
+    private lateinit var secCode: TextView
+    private lateinit var secBtn: Button
 
     // stato mostrato
     private var curState = "READY"
@@ -231,6 +233,28 @@ class MainActivity : AppCompatActivity() {
         }, lp(match, wrap, top = 10))
         right.addView(updCard, lp(match, wrap))
 
+        // scheda CODICE DI ABBINAMENTO
+        val secCard = card("CODICE DI ABBINAMENTO")
+        secCode = tv(Pairing.key(this), 30f, 0xFFFFFFFF.toInt(), true).apply {
+            letterSpacing = 0.15f
+            // tenuto premuto: nuovo codice (poi va riscritto sul tablet)
+            setOnLongClickListener { Pairing.regenerate(this@MainActivity); renderSec(); true }
+        }
+        secCard.addView(secCode, lp(match, wrap, top = 8))
+        secCard.addView(
+            tv("Scrivilo nelle impostazioni del tablet (Telefono camera), poi accendi la protezione. Tieni premuto il codice per cambiarlo.", 13f, cSub),
+            lp(match, wrap, top = 4),
+        )
+        secBtn = chipBtn("", cChip).apply {
+            setOnClickListener {
+                Pairing.setRequired(this@MainActivity, !Pairing.required(this@MainActivity))
+                renderSec()
+            }
+        }
+        secCard.addView(secBtn, lp(match, wrap, top = 10))
+        right.addView(secCard, lp(match, wrap, top = 12))
+        renderSec()
+
         // scheda SCHERMO
         screenCard = card("SCHERMO")
         screenCard.addView(
@@ -285,6 +309,30 @@ class MainActivity : AppCompatActivity() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         applyLayout()
+    }
+
+    private fun renderSec() {
+        val on = Pairing.required(this)
+        secCode.text = Pairing.key(this)
+        secBtn.text = if (on) "Protezione accesa (tocca per spegnere)" else "Protezione spenta (tocca per accendere)"
+        secBtn.background = roundBg(if (on) 0xFF2E7D32.toInt() else cChip, 24)
+    }
+
+    /** Una sola volta chiede di escludere l'app dal risparmio batteria (su Xiaomi evita che venga chiusa). */
+    private fun askBatteryExemption() {
+        val p = getSharedPreferences("booth_service", MODE_PRIVATE)
+        if (p.getBoolean("battAsked", false)) return
+        val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
+        if (pm.isIgnoringBatteryOptimizations(packageName)) return
+        p.edit().putBoolean("battAsked", true).apply()
+        runCatching {
+            startActivity(
+                android.content.Intent(
+                    android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                    android.net.Uri.parse("package:$packageName"),
+                ),
+            )
+        }
     }
 
     private fun mmss(sec: Long): String = "%02d:%02d".format(sec / 60, sec % 60)
@@ -417,6 +465,7 @@ class MainActivity : AppCompatActivity() {
             historyList = { camera?.historyJson() ?: "[]" },
             thumbFile = { name -> camera?.thumbFile(name) },
             onFrame = { bytes -> camera?.saveFrame(bytes) ?: false },
+            pairKey = { if (Pairing.required(this@MainActivity)) Pairing.key(this@MainActivity) else null },
         )
         val cam = CameraController(
             context = this,
@@ -452,6 +501,8 @@ class MainActivity : AppCompatActivity() {
         srv.start()
         cam.start()
         nsd = NsdAdvertiser(this).also { it.register(StreamServer.PORT) }
+        CameraService.start(this)
+        askBatteryExemption()
         booted = true
         render()
         motion = MotionGuard(this, { true }, { 10 }) { kind -> if (kind != "HIT") srv.sendEvent("MOTION:$kind") }.also { it.start() }
@@ -519,6 +570,7 @@ class MainActivity : AppCompatActivity() {
         camera?.release()
         server?.stop()
         nsd?.unregister()
+        CameraService.stop(this)
         super.onDestroy()
     }
 }

@@ -100,6 +100,7 @@ class DashServer(
                         BoothLive.lastRequest = System.currentTimeMillis()
                     }
                     val data = BoothLive.jpeg
+                    call.response.header("X-Level", BoothLive.levelNow.toString())
                     if (data == null || !BoothLive.fresh) {
                         call.respond(HttpStatusCode.NoContent)
                     } else {

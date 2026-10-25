@@ -53,9 +53,17 @@ class BoothClient(context: Context) {
         private set
 
     private val nsd = context.getSystemService(Context.NSD_SERVICE) as NsdManager
+    /** Codice di abbinamento del telefono camera (vuoto = nessun codice). Viene mandato a ogni richiesta. */
+    @Volatile
+    var key: String = ""
+
     private val http = OkHttpClient.Builder()
         .pingInterval(5, TimeUnit.SECONDS)
         .readTimeout(0, TimeUnit.MILLISECONDS)
+        .addInterceptor { chain ->
+            val k = key
+            chain.proceed(if (k.isEmpty()) chain.request() else chain.request().newBuilder().header("X-Key", k).build())
+        }
         .build()
     private val main = Handler(Looper.getMainLooper())
     private var socket: WebSocket? = null
@@ -238,7 +246,11 @@ class BoothClient(context: Context) {
                         events.tryEmit(text.removePrefix("EVENT:"))
                         if (text.startsWith("EVENT:SAVED:") || text.startsWith("EVENT:DELETED:")) refreshHistory()
                     }
-                    text.startsWith("LEVEL:") -> level.value = text.removePrefix("LEVEL:").toIntOrNull() ?: 0
+                    text.startsWith("LEVEL:") -> {
+                        val v = text.removePrefix("LEVEL:").toIntOrNull() ?: 0
+                        level.value = v
+                        BoothLive.setLevel(v)
+                    }
                     text.startsWith("INFO:") -> runCatching { info.value = JSONObject(text.removePrefix("INFO:")) }
                 }
             }

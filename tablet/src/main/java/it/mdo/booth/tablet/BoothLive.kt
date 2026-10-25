@@ -17,6 +17,12 @@ object BoothLive {
     @Volatile var at = 0L
     @Volatile var lastRequest = 0L
 
+    /** Volume del microfono del telefono camera (0..100 = da -60 a 0 dB), per la barra in Controllo. */
+    @Volatile var level = 0
+    @Volatile var levelAt = 0L
+    val levelNow: Int get() = if (System.currentTimeMillis() - levelAt < 2000) level else 0
+    fun setLevel(v: Int) { level = v; levelAt = System.currentTimeMillis() }
+
     val wanted: Boolean get() = System.currentTimeMillis() - lastRequest < 4000
     val fresh: Boolean get() = jpeg != null && System.currentTimeMillis() - at < 3000
 

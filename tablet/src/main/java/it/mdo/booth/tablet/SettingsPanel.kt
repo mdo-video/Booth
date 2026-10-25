@@ -23,6 +23,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -84,6 +86,25 @@ fun SettingsPanel(
             }
 
             Category("TELEFONO CAMERA")
+            SettingCard {
+                Section("CODICE DI ABBINAMENTO")
+                Label("Il codice a 6 cifre mostrato sul telefono camera (vuoto se la protezione è spenta)")
+                OutlinedTextField(
+                    value = local.camKey,
+                    onValueChange = { v ->
+                        val k = v.filter { it.isDigit() }.take(6)
+                        local.camKey = k
+                        client.key = k
+                        local.save()
+                    },
+                    singleLine = true,
+                    label = { Text("Codice") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+                )
+                if (info == null) Text("Telefono non connesso: controlla che il codice sia giusto", color = Color.LightGray, fontSize = 14.sp)
+            }
             if (info == null) {
                 SettingCard { Text("Telefono non connesso", color = Color.LightGray, fontSize = 16.sp) }
             } else {

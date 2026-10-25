@@ -174,8 +174,11 @@ fun BoothScreen(
     }
     LaunchedEffect(takeSaved, savedName) {
         if (takeSaved && savedName != null && (local.autoQr || pendingQr) && base != null) {
-            qr = QrRequest("$base/p/$savedName")
+            qr = QrRequest(guestLink(base, savedName, local.camKey))
             pendingQr = false
+        } else if (takeSaved && !local.autoQr) {
+            // salvata e niente QR: si torna subito alla schermata normale (la dedica resta salvata)
+            client.send("DISCARD")
         }
     }
     LaunchedEffect(hasTake) { if (!hasTake) pendingQr = false }
@@ -250,7 +253,7 @@ fun BoothScreen(
             if (takeSaved) {
                 if (g == RemoteGesture.SINGLE) { client.send("DISCARD"); ack() }            // Nuova
                 else if (g != RemoteGesture.DOUBLE && savedName != null && base != null) { // QR
-                    qr = QrRequest("$base/p/$savedName"); ack()
+                    qr = QrRequest(guestLink(base, savedName, local.camKey)); ack()
                 }
             } else {
                 if (g == RemoteGesture.SINGLE) { client.send("SAVE"); ack() }                // Salva
@@ -589,7 +592,7 @@ fun BoothScreen(
                 onShare = {
                     // Condividi = QR, senza uscire dal kiosk
                     EventLog.add("CONDIVISA")
-                    if (takeSaved && savedName != null) qr = QrRequest("$base/p/$savedName")
+                    if (takeSaved && savedName != null) qr = QrRequest(guestLink(base, savedName, local.camKey))
                     else { pendingQr = true; client.send("SAVE") }
                 },
                 modifier = Modifier.align(Alignment.Center).padding(bottom = 32.dp),
@@ -670,7 +673,7 @@ fun BoothScreen(
                     cacheKey = "h_${v.time}_${v.name}",
                     name = v.name,
                     onClose = { viewing = null },
-                    onShare = { EventLog.add("CONDIVISA", v.name); qr = QrRequest("$base/p/${v.name}") },
+                    onShare = { EventLog.add("CONDIVISA", v.name); qr = QrRequest(guestLink(base, v.name, local.camKey)) },
                     modifier = Modifier.align(Alignment.Center).padding(bottom = 32.dp),
                 )
             }

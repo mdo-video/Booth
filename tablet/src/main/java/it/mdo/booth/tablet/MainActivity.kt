@@ -32,6 +32,8 @@ class LocalSettings(private val prefs: SharedPreferences) {
     var kiosk by mutableStateOf(prefs.getBoolean("kiosk", false))
     var sound by mutableStateOf(prefs.getBoolean("sound", true))
     var autoQr by mutableStateOf(prefs.getBoolean("autoQr", true))
+    /** codice di abbinamento mostrato sul telefono camera */
+    var camKey by mutableStateOf(prefs.getString("camKey", "") ?: "")
     var wifiSsid by mutableStateOf(prefs.getString("wifiSsid", "") ?: "")
     var wifiPass by mutableStateOf(prefs.getString("wifiPass", "") ?: "")
     var welcome by mutableStateOf(prefs.getString("welcome", "Lascia una dedica!") ?: "")
@@ -65,6 +67,7 @@ class LocalSettings(private val prefs: SharedPreferences) {
             .putBoolean("kiosk", kiosk)
             .putBoolean("sound", sound)
             .putBoolean("autoQr", autoQr)
+            .putString("camKey", camKey)
             .putString("wifiSsid", wifiSsid)
             .putString("wifiPass", wifiPass)
             .putString("welcome", welcome)
@@ -149,7 +152,7 @@ class MainActivity : ComponentActivity() {
             local.save()
             if (frames.importAsset("frame_gaia30.png")) frames.enableOnSync = true
         }
-        client = BoothClient(this).also { it.start() }
+        client = BoothClient(this).also { it.key = local.camKey; it.start() }
         DashState.local = local
         DashState.frames = frames
         DashState.client = client

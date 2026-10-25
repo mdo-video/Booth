@@ -21,6 +21,9 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(51, "1.46", "Volume nella Diretta booth", listOf(
+            "Diretta booth: sotto l'anteprima c'è la barra del volume del microfono, con scala da -60 a 0 dB e picco",
+        )),
         Entry(50, "1.45", "App Camera nello stile di Controllo", listOf(
             "Camera: nuova schermata scura a schede, uguale all'app Controllo, sviluppata in orizzontale su due colonne (in verticale diventa una colonna)",
             "Camera: stato grande (Pronto, In registrazione, In attesa del tablet), pallino del collegamento al tablet e tempo di registrazione con barra",

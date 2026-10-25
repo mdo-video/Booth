@@ -22,7 +22,7 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 /** Un fotogramma della diretta (già ruotato) e il suo numero progressivo. */
-class Snap(val bmp: Bitmap?, val seq: Long)
+class Snap(val bmp: Bitmap?, val seq: Long, val level: Int = -1)
 
 /** Parla con la dashcam del tablet: la trova via mDNS (o IP a mano) e legge stato, log e video. */
 @Suppress("DEPRECATION")
@@ -144,7 +144,8 @@ class Api(ctx: Context) {
         val b = base ?: return@withContext null
         try {
             liveHttp.newCall(Request.Builder().url("$b/${if (booth) "boothsnap" else "snap"}?after=$after&k=$key").build()).execute().use { r ->
-                if (r.code == 204) return@use Snap(null, after)
+                val lvl = r.header("X-Level")?.toIntOrNull() ?: -1
+                if (r.code == 204) return@use Snap(null, after, lvl)
                 if (!r.isSuccessful) return@use null
                 val seq = r.header("X-Seq")?.toLongOrNull() ?: 0L
                 val rot = r.header("X-Rot")?.toIntOrNull() ?: 0
@@ -154,7 +155,7 @@ class Api(ctx: Context) {
                     val m = Matrix().apply { postRotate(rot.toFloat()) }
                     Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, m, true)
                 }
-                Snap(bmp, seq)
+                Snap(bmp, seq, lvl)
             }
         } catch (_: Exception) {
             null

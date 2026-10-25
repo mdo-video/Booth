@@ -392,10 +392,12 @@ private fun ClipsTab(api: Api) {
 private fun LiveTab(api: Api, booth: Boolean) {
     var bmp by remember { mutableStateOf<Bitmap?>(null) }
     var msg by remember { mutableStateOf("Connessione al tablet…") }
+    var level by remember { mutableIntStateOf(0) }
     LaunchedEffect(api.base, api.key, booth) {
         var seq = -1L
         while (true) {
             val r = api.snap(seq, booth)
+            if (booth) level = if (r != null && r.level >= 0) r.level else 0
             when {
                 r == null -> { msg = "Il tablet non risponde"; delay(1000) }
                 r.bmp == null -> { seq = -1L; msg = if (booth) "Nessun fotogramma: il telefono camera è collegato al tablet?" else "Nessun fotogramma: la dashcam è ferma?"; delay(700) }
@@ -418,6 +420,11 @@ private fun LiveTab(api: Api, booth: Boolean) {
                 )
             }
             if (msg.isNotEmpty()) Text(msg, color = Color(0xFFB0B5C0), fontSize = 15.sp)
+        }
+        if (booth) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                LevelBar(level, Modifier.fillMaxWidth(0.82f))
+            }
         }
         Text(
             if (booth) "Diretta del booth: l'anteprima del telefono camera, a bassa risoluzione (max 640x480, 15 fotogrammi al secondo) per usare poca rete."

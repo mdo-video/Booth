@@ -21,6 +21,12 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(51, "1.46", "Codice di abbinamento e ritorno veloce", listOf(
+            "Dopo Salva, con il QR spento, si torna subito alla schermata Pronto: la dedica resta salvata",
+            "Impostazioni, Telefono camera: nuovo campo per il codice di abbinamento del telefono camera",
+            "Il QR degli ospiti ora contiene una firma: ogni ospite apre solo la propria dedica",
+            "Controllo, Diretta booth: manda al telefono di controllo anche il volume del microfono",
+        )),
         Entry(50, "1.45", "App Camera nello stile di Controllo", listOf(
             "Camera: nuova schermata scura a schede, uguale all'app Controllo, sviluppata in orizzontale su due colonne (in verticale diventa una colonna)",
             "Camera: stato grande (Pronto, In registrazione, In attesa del tablet), pallino del collegamento al tablet e tempo di registrazione con barra",

@@ -21,6 +21,11 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(51, "1.46", "Codice di abbinamento e servizio attivo", listOf(
+            "Nuova scheda Codice di abbinamento: con la protezione accesa il telefono risponde solo al tablet che ha il codice",
+            "Servizio in primo piano con notifica fissa: Android non chiude più l'app durante l'evento",
+            "Alla prima apertura chiede di escludere l'app dal risparmio batteria",
+        )),
         Entry(50, "1.45", "App Camera nello stile di Controllo", listOf(
             "Camera: nuova schermata scura a schede, uguale all'app Controllo, sviluppata in orizzontale su due colonne (in verticale diventa una colonna)",
             "Camera: stato grande (Pronto, In registrazione, In attesa del tablet), pallino del collegamento al tablet e tempo di registrazione con barra",
