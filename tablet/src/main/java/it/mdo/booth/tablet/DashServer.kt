@@ -88,6 +88,26 @@ class DashServer(
                         call.respondBytes(data, ContentType.Image.JPEG)
                     }
                 }
+                get("/boothsnap") {
+                    // diretta del booth (telefono camera): 640x480 max, 15 fps
+                    if (!call.authed()) return@get
+                    BoothLive.lastRequest = System.currentTimeMillis()
+                    val after = call.request.queryParameters["after"]?.toLongOrNull() ?: -1L
+                    var waited = 0
+                    while (!(BoothLive.fresh && BoothLive.seq > after) && waited < 1500) {
+                        delay(30)
+                        waited += 30
+                        BoothLive.lastRequest = System.currentTimeMillis()
+                    }
+                    val data = BoothLive.jpeg
+                    if (data == null || !BoothLive.fresh) {
+                        call.respond(HttpStatusCode.NoContent)
+                    } else {
+                        call.response.header("X-Seq", BoothLive.seq.toString())
+                        call.response.header("X-Rot", "0")
+                        call.respondBytes(data, ContentType.Image.JPEG)
+                    }
+                }
                 post("/settings") {
                     if (!call.authed()) return@post
                     val body = call.receiveText()

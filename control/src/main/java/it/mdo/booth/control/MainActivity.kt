@@ -245,15 +245,16 @@ fun ControlApp(api: Api, upd: UpdateManager) {
             Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            listOf("Stato", "Diretta", "Log", "Video", "Dediche", "Impost.").forEachIndexed { i, t -> Chip(t, tab == i) { tab = i } }
+            listOf("Stato", "Dediche", "Diretta booth", "Diretta dashcam", "Video", "Log", "Impost.").forEachIndexed { i, t -> Chip(t, tab == i) { tab = i } }
         }
         Box(Modifier.weight(1f).padding(horizontal = 12.dp)) {
             when (tab) {
                 0 -> StatusTab(api)
-                1 -> LiveTab(api)
-                2 -> LogTab(api)
-                3 -> ClipsTab(api)
-                4 -> DedicheTab(dediche, api)
+                1 -> DedicheTab(dediche, api)
+                2 -> LiveTab(api, booth = true)
+                3 -> LiveTab(api, booth = false)
+                4 -> ClipsTab(api)
+                5 -> LogTab(api)
                 else -> SettingsTab(api, upd)
             }
         }
@@ -388,16 +389,16 @@ private fun ClipsTab(api: Api) {
 }
 
 @Composable
-private fun LiveTab(api: Api) {
+private fun LiveTab(api: Api, booth: Boolean) {
     var bmp by remember { mutableStateOf<Bitmap?>(null) }
     var msg by remember { mutableStateOf("Connessione al tablet…") }
-    LaunchedEffect(api.base, api.key) {
+    LaunchedEffect(api.base, api.key, booth) {
         var seq = -1L
         while (true) {
-            val r = api.snap(seq)
+            val r = api.snap(seq, booth)
             when {
                 r == null -> { msg = "Il tablet non risponde"; delay(1000) }
-                r.bmp == null -> { msg = "Nessun fotogramma: la dashcam è ferma?"; delay(700) }
+                r.bmp == null -> { seq = -1L; msg = if (booth) "Nessun fotogramma: il telefono camera è collegato al tablet?" else "Nessun fotogramma: la dashcam è ferma?"; delay(700) }
                 r.seq == seq -> { msg = "Nessun nuovo fotogramma dal tablet"; delay(400) }
                 else -> { msg = ""; seq = r.seq; bmp = r.bmp }
             }
@@ -419,7 +420,8 @@ private fun LiveTab(api: Api) {
             if (msg.isNotEmpty()) Text(msg, color = Color(0xFFB0B5C0), fontSize = 15.sp)
         }
         Text(
-            "Diretta della fotocamera frontale del tablet (circa 640 px, qualche fotogramma al secondo). " +
+            if (booth) "Diretta del booth: l'anteprima del telefono camera, a bassa risoluzione (max 640x480, 15 fotogrammi al secondo) per usare poca rete."
+            else "Diretta dashcam: la fotocamera frontale del tablet (circa 640 px, qualche fotogramma al secondo). " +
                 "La registrazione a segmenti continua normalmente.",
             color = Color.Gray, fontSize = 13.sp,
         )

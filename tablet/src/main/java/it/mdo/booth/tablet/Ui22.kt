@@ -89,7 +89,7 @@ fun TopPills(
     }
 }
 
-/** Sul bordo superiore: i puntini degli effetti. La scritta "scorri" c'è solo finché non si sceglie un effetto. */
+/** Sul bordo superiore: i puntini degli effetti. La scritta "scorri" resta sempre visibile. */
 @Composable
 fun FilterHint(current: String, modifier: Modifier = Modifier) {
     val ids = Filters.shown.map { it.id }
@@ -99,14 +99,12 @@ fun FilterHint(current: String, modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (current == "none") {
-            Text(
-                Lang.t("‹ Scorri per gli effetti ›", "‹ Swipe for effects ›"),
-                color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clip(RoundedCornerShape(50)).background(Color(0xB3000000))
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
-            )
-        }
+        Text(
+            Lang.t("‹ Scorri per gli effetti ›", "‹ Swipe for effects ›"),
+            color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.clip(RoundedCornerShape(50)).background(Color(0xB3000000))
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             for (i in ids.indices) {
                 val sel = i == idx

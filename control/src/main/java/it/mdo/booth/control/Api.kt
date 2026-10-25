@@ -139,11 +139,11 @@ class Api(ctx: Context) {
         refresh()
     }
 
-    /** Prossimo fotogramma della diretta; null se il tablet non risponde. */
-    suspend fun snap(after: Long): Snap? = withContext(Dispatchers.IO) {
+    /** Prossimo fotogramma della diretta (dashcam, oppure booth se booth=true); null se il tablet non risponde. */
+    suspend fun snap(after: Long, booth: Boolean = false): Snap? = withContext(Dispatchers.IO) {
         val b = base ?: return@withContext null
         try {
-            liveHttp.newCall(Request.Builder().url("$b/snap?after=$after&k=$key").build()).execute().use { r ->
+            liveHttp.newCall(Request.Builder().url("$b/${if (booth) "boothsnap" else "snap"}?after=$after&k=$key").build()).execute().use { r ->
                 if (r.code == 204) return@use Snap(null, after)
                 if (!r.isSuccessful) return@use null
                 val seq = r.header("X-Seq")?.toLongOrNull() ?: 0L

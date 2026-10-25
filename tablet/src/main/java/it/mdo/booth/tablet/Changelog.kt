@@ -21,6 +21,13 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(48, "1.43", "Dirette, impostazioni a schede e slider nuovo", listOf(
+            "Tablet: la scritta \"Scorri per gli effetti\" resta sempre visibile",
+            "Tablet: slider della durata più moderno, senza sfondo; valori sopra la barra e \"Durata massima\" sotto",
+            "Tablet: impostazioni divise per categorie (Telefono camera, Aspetto, Ospiti, Accessori, Dashcam, Sistema), come nell'app Controllo",
+            "Controllo: nuova \"Diretta booth\" a bassa risoluzione (max 640x480, 15 fotogrammi al secondo); la vecchia Diretta ora si chiama \"Diretta dashcam\"",
+            "Controllo: schede riordinate: Stato, Dediche, Diretta booth, Diretta dashcam, Video, Log, Impost.",
+        )),
         Entry(47, "1.42", "Slider durata più piccolo", listOf(
             "Lo slider della durata è più compatto e non copre più il tasto torcia/flash",
         )),

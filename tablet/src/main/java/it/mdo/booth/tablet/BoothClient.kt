@@ -96,7 +96,10 @@ class BoothClient(context: Context) {
                 try {
                     while (true) {
                         val f = latestFrame.getAndSet(null) ?: break
-                        BitmapFactory.decodeByteArray(f, 0, f.size, previewOpts)?.let { frame.value = it }
+                        BitmapFactory.decodeByteArray(f, 0, f.size, previewOpts)?.let {
+                            frame.value = it
+                            BoothLive.offer(it)
+                        }
                     }
                 } finally {
                     decoding.set(false)
