@@ -697,7 +697,69 @@ class CameraController(
         onInfo(j.toString())
     }
 
-    fun refreshInfo() = publishInfo()
+    fun refreshInfo() {
+        publishInfo()
+        if (recording == null && !processing) startMonitor()
+    }
+
+    // ---- volume del microfono anche prima di registrare ----
+    @Volatile private var monitorRun = false
+    private var monitorThread: Thread? = null
+    private var lvlSmooth = 0
+
+    /** dB -> 0..100: sotto -52 dB (rumore di fondo) = 0, -8 dB = 100; attacco immediato, discesa lenta. */
+    private fun levelFromDb(db: Double): Int {
+        val raw = if (db < -52.0) 0 else (((db + 52.0) / 44.0) * 100.0).toInt().coerceIn(0, 100)
+        lvlSmooth = maxOf(raw, (lvlSmooth * 0.82).toInt())
+        return lvlSmooth
+    }
+
+    @SuppressLint("MissingPermission")
+    fun startMonitor() {
+        if (monitorThread?.isAlive == true) return
+        if (context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) return
+        monitorRun = true
+        monitorThread = Thread {
+            val rate = 16000
+            val min = android.media.AudioRecord.getMinBufferSize(rate, android.media.AudioFormat.CHANNEL_IN_MONO, android.media.AudioFormat.ENCODING_PCM_16BIT)
+            if (min <= 0) return@Thread
+            val rec = try {
+                android.media.AudioRecord(
+                    android.media.MediaRecorder.AudioSource.MIC, rate,
+                    android.media.AudioFormat.CHANNEL_IN_MONO, android.media.AudioFormat.ENCODING_PCM_16BIT, min * 2,
+                )
+            } catch (e: Exception) { return@Thread }
+            if (rec.state != android.media.AudioRecord.STATE_INITIALIZED) { rec.release(); return@Thread }
+            audio.getDevices(AudioManager.GET_DEVICES_INPUTS).firstOrNull {
+                it.type == AudioDeviceInfo.TYPE_USB_DEVICE || it.type == AudioDeviceInfo.TYPE_USB_HEADSET
+            }?.let { rec.setPreferredDevice(it) }
+            try {
+                rec.startRecording()
+                val buf = ShortArray(rate / 20)   // 50 ms
+                while (monitorRun) {
+                    val n = rec.read(buf, 0, buf.size)
+                    if (n <= 0) break
+                    var sum = 0.0
+                    for (i in 0 until n) sum += buf[i].toDouble() * buf[i].toDouble()
+                    val rms = Math.sqrt(sum / n) / 32768.0
+                    val db = if (rms <= 0.0) -90.0 else 20.0 * Math.log10(rms)
+                    val lv = levelFromDb(db)
+                    if (wantsFrames()) onLevel(lv)
+                }
+            } catch (_: Exception) {
+            } finally {
+                runCatching { rec.stop() }
+                rec.release()
+            }
+        }.also { it.isDaemon = true; it.start() }
+    }
+
+    fun stopMonitor() {
+        monitorRun = false
+        runCatching { monitorThread?.join(400) }
+        monitorThread = null
+        lvlSmooth = 0
+    }
 
     fun applySettings(j: JSONObject) {
         var rebind = false
@@ -807,6 +869,7 @@ class CameraController(
     fun startRecording() {
         val video = videoCapture ?: return
         if (recording != null || pendingTake != null || processing || shooting) return
+        stopMonitor()   // il microfono serve alla registrazione
         takesDir.listFiles()?.filter { it.name.startsWith("take_") }?.forEach { it.delete() }
         val file = File(takesDir, "take_${System.currentTimeMillis()}.mp4")
 
@@ -819,10 +882,12 @@ class CameraController(
                         val a = e.recordingStats.audioStats.audioAmplitude.toDouble()
                         val norm = if (a > 1.0) a / 32767.0 else a
                         val db = if (norm <= 0.0) -90.0 else 20.0 * Math.log10(norm)
-                        onLevel(((db + 60.0) / 60.0 * 100.0).toInt().coerceIn(0, 100))
+                        onLevel(levelFromDb(db - 10.0))   // il picco sta circa 10 dB sopra il valore medio
                     }
                     is VideoRecordEvent.Finalize -> {
+                        lvlSmooth = 0
                         onLevel(0)
+                        main.postDelayed({ startMonitor() }, 600)
                         main.removeCallbacks(autoStop)
                         recording = null
                         if (e.hasError()) {
@@ -948,6 +1013,7 @@ class CameraController(
     }
 
     fun release() {
+        stopMonitor()
         main.removeCallbacks(autoStop)
         main.removeCallbacks(progressTick)
         runCatching { transformer?.cancel() }

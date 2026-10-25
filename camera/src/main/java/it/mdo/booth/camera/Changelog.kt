@@ -21,6 +21,10 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(44, "1.39", "Volume microfono", listOf(
+            "La barra del volume funziona anche prima di premere REC",
+            "Barra più stabile: il rumore di fondo del silenzio non la muove più",
+        )),
         Entry(43, "1.38", "Eventi, volume e dediche", listOf(
             "Barra del volume del microfono sul tablet mentre registri un video",
             "Pellicola del tablet: solo l'evento in corso; prima del collegamento niente tasto REC",
