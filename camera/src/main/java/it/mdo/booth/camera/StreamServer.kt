@@ -135,8 +135,10 @@ class StreamServer(
                             "img,video{width:100%;max-height:75vh;object-fit:contain;background:#000;display:block}" +
                             "a.b{display:inline-block;margin:20px 0 28px;padding:16px 34px;border-radius:40px;" +
                             "background:#FF2D55;color:#fff;font-size:20px;font-weight:bold;text-decoration:none}" +
+                            "p.n{margin:0 24px 28px;color:#B8B0C4;font-size:15px}" +
                             "</style></head><body>$media" +
                             "<a class=\"b\" href=\"/h/${f.name}?dl=1\" download=\"${f.name}\">$label</a>" +
+                            "<p class=\"n\">Dopo il download trovi il file nel telefono, aprilo e condividilo come vuoi.</p>" +
                             "</body></html>"
                         call.respondText(html, ContentType.Text.Html)
                     }
