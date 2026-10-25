@@ -495,10 +495,19 @@ private fun SettingsTab(api: Api, upd: UpdateManager) {
                     }
                 }
                 Card("DURATA MASSIMA") {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(15, 30, 60, 90, 120).forEach { sec ->
-                            Chip("${sec}s", info.optInt("duration") == sec) { sendPhone("duration", sec) }
-                        }
+                    val durations = listOf(30, 60, 90, 120)
+                    val curDur = info.optInt("duration", 60)
+                    var durIdx by remember(curDur) { mutableFloatStateOf(durations.indices.minByOrNull { kotlin.math.abs(durations[it] - curDur) }!!.toFloat()) }
+                    Text("${durations[durIdx.roundToInt().coerceIn(0, durations.lastIndex)]} secondi", color = Color.White, fontSize = 17.sp)
+                    Slider(
+                        value = durIdx,
+                        onValueChange = { durIdx = it },
+                        onValueChangeFinished = { sendPhone("duration", durations[durIdx.roundToInt().coerceIn(0, durations.lastIndex)]) },
+                        valueRange = 0f..durations.lastIndex.toFloat(),
+                        steps = durations.size - 2,
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        durations.forEach { Text("${it}s", color = Color.Gray, fontSize = 14.sp) }
                     }
                 }
                 Card("ORIENTAMENTO VIDEO") {

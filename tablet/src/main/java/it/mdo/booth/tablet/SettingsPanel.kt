@@ -191,10 +191,19 @@ private fun PhoneSettings(client: BoothClient, info: JSONObject) {
     }
 
     Section("DURATA MASSIMA")
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        listOf(15, 30, 60, 90, 120).forEach { s ->
-            Chip("${s}s", info.optInt("duration") == s) { send("duration", s) }
-        }
+    val durations = listOf(30, 60, 90, 120)
+    val curDur = info.optInt("duration", 60)
+    var durIdx by remember(curDur) { mutableFloatStateOf(durations.indices.minByOrNull { abs(durations[it] - curDur) }!!.toFloat()) }
+    Label("${durations[durIdx.roundToInt().coerceIn(0, durations.lastIndex)]} secondi")
+    Slider(
+        value = durIdx,
+        onValueChange = { durIdx = it },
+        onValueChangeFinished = { send("duration", durations[durIdx.roundToInt().coerceIn(0, durations.lastIndex)]) },
+        valueRange = 0f..durations.lastIndex.toFloat(),
+        steps = durations.size - 2,
+    )
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        durations.forEach { Text("${it}s", color = Color.Gray, fontSize = 14.sp) }
     }
 
     Section("ORIENTAMENTO VIDEO")

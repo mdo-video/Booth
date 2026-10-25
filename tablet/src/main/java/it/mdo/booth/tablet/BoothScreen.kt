@@ -564,6 +564,18 @@ fun BoothScreen(
             }
         }
 
+        // durata del video: la sceglie l'ospite prima di premere REC
+        val pickInfo = info
+        if (connected && pickInfo != null && !hasTake && !processing && !recording && !starting && countdown == 0 &&
+            viewing == null && !(photoMode && pickInfo.optBoolean("hasPhoto"))
+        ) {
+            DurationPicker(
+                current = pickInfo.optInt("duration", 60),
+                onPick = { client.set(JSONObject().put("duration", it)) },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(end = if (wide) 168.dp else 24.dp, bottom = 24.dp),
+            )
+        }
+
         // anteprima del video appena registrato
         if (hasTake && base != null) {
             TakeCard(
@@ -620,12 +632,24 @@ fun BoothScreen(
         val videoMode = !(photoMode && info?.optBoolean("hasPhoto") == true)
         if (connected && videoMode && !hasTake && !processing && viewing == null) {
             val lvl by client.level.collectAsState()
-            VuMeter(
-                level = lvl,
-                modifier = Modifier.align(Alignment.CenterEnd)
-                    .padding(end = 16.dp, top = if (wide) zoneTop else 24.dp, bottom = if (wide) zoneBottom else 24.dp)
-                    .fillMaxHeight(),
-            )
+            val liveFrame by client.frame.collectAsState()
+            // la barra sta a metà tra il bordo destro dell'anteprima e il bordo destro dello schermo
+            androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
+                val ar = liveFrame?.let { it.width.toFloat() / it.height } ?: (16f / 9f)
+                val sideMargin = when (local.borderMode) { 0 -> 0.dp; 1 -> 24.dp; else -> 168.dp }
+                val vMargin = when (local.borderMode) { 0 -> 0.dp; 1 -> 48.dp; else -> 280.dp }   // alto + basso
+                val areaW = maxWidth - sideMargin * 2
+                val areaH = maxHeight - vMargin
+                val previewW = minOf(areaW, areaH * ar)
+                val gap = sideMargin + (areaW - previewW) / 2
+                val endPad = if (gap > VuBarWidth + 40.dp) gap / 2 - VuBarWidth / 2 else 16.dp
+                VuMeter(
+                    level = lvl,
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                        .padding(end = endPad, top = if (wide) zoneTop else 24.dp, bottom = if (wide) zoneBottom else 24.dp)
+                        .fillMaxHeight(),
+                )
+            }
         }
 
         // storico: pellicola verticale a sinistra

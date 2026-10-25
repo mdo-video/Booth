@@ -185,9 +185,23 @@ class CameraController(
     private var lock = false  // fuoco, esposizione e bianco bloccati (non persistente)
 
     private val audioCallback = object : AudioDeviceCallback() {
-        override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>?) = publishInfo()
-        override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>?) = publishInfo()
+        override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>?) = onMicChanged()
+        override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>?) = onMicChanged()
     }
+
+    /** Microfono collegato o scollegato: aggiorna le info e riapre il monitor sul microfono giusto. */
+    private fun onMicChanged() {
+        publishInfo()
+        if (recording != null || processing) return
+        stopMonitor()
+        main.postDelayed({ if (recording == null && !processing) startMonitor() }, 500)
+    }
+
+    /** Primo microfono USB collegato (null se non c'è). */
+    private fun usbInput(): AudioDeviceInfo? =
+        audio.getDevices(AudioManager.GET_DEVICES_INPUTS).firstOrNull {
+            it.type == AudioDeviceInfo.TYPE_USB_DEVICE || it.type == AudioDeviceInfo.TYPE_USB_HEADSET
+        }
 
     private val takesDir: File
         get() = context.getExternalFilesDir(Environment.DIRECTORY_MOVIES) ?: context.filesDir
@@ -645,12 +659,7 @@ class CameraController(
         return out
     }
 
-    private fun usbMicName(): String {
-        val d = audio.getDevices(AudioManager.GET_DEVICES_INPUTS).firstOrNull {
-            it.type == AudioDeviceInfo.TYPE_USB_DEVICE || it.type == AudioDeviceInfo.TYPE_USB_HEADSET
-        }
-        return d?.productName?.toString() ?: ""
-    }
+    private fun usbMicName(): String = usbInput()?.productName?.toString() ?: ""
 
     private fun publishInfo() {
         val cam = camera ?: return
@@ -707,51 +716,65 @@ class CameraController(
     private var monitorThread: Thread? = null
     private var lvlSmooth = 0
 
-    /** dB -> 0..100: sotto -52 dB (rumore di fondo) = 0, -8 dB = 100; attacco immediato, discesa lenta. */
+    /** dB (picco, fondo scala = 0 dB) -> 0..100: -60 dB = 0, 0 dB = 100; sotto -54 dB (rumore di fondo) = 0; attacco immediato, discesa lenta. */
     private fun levelFromDb(db: Double): Int {
-        val raw = if (db < -52.0) 0 else (((db + 52.0) / 44.0) * 100.0).toInt().coerceIn(0, 100)
+        val raw = if (db < -54.0) 0 else (((db + 60.0) / 60.0) * 100.0).toInt().coerceIn(0, 100)
         lvlSmooth = maxOf(raw, (lvlSmooth * 0.82).toInt())
         return lvlSmooth
     }
+
+    @Volatile private var monitorFailMs = 0L
 
     @SuppressLint("MissingPermission")
     fun startMonitor() {
         if (monitorThread?.isAlive == true) return
         if (context.checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) return
+        // se l'ultima apertura è fallita, non riprovare a raffica (apri/chiudi continuo del microfono USB)
+        if (System.currentTimeMillis() - monitorFailMs < 5000) return
         monitorRun = true
         monitorThread = Thread {
-            val rate = 16000
-            val min = android.media.AudioRecord.getMinBufferSize(rate, android.media.AudioFormat.CHANNEL_IN_MONO, android.media.AudioFormat.ENCODING_PCM_16BIT)
-            if (min <= 0) return@Thread
-            val rec = try {
-                android.media.AudioRecord(
-                    android.media.MediaRecorder.AudioSource.MIC, rate,
-                    android.media.AudioFormat.CHANNEL_IN_MONO, android.media.AudioFormat.ENCODING_PCM_16BIT, min * 2,
-                )
-            } catch (e: Exception) { return@Thread }
-            if (rec.state != android.media.AudioRecord.STATE_INITIALIZED) { rec.release(); return@Thread }
-            audio.getDevices(AudioManager.GET_DEVICES_INPUTS).firstOrNull {
-                it.type == AudioDeviceInfo.TYPE_USB_DEVICE || it.type == AudioDeviceInfo.TYPE_USB_HEADSET
-            }?.let { rec.setPreferredDevice(it) }
+            val usb = usbInput()
+            // prima il microfono USB (48 kHz: molti non accettano 16 kHz), poi quello interno
+            val rec = openMonitor(usb, if (usb != null) 48000 else 16000)
+                ?: (if (usb != null) openMonitor(null, 16000) else null)
+            if (rec == null) { monitorFailMs = System.currentTimeMillis(); return@Thread }
+            val rate = rec.sampleRate
             try {
                 rec.startRecording()
                 val buf = ShortArray(rate / 20)   // 50 ms
                 while (monitorRun) {
                     val n = rec.read(buf, 0, buf.size)
-                    if (n <= 0) break
-                    var sum = 0.0
-                    for (i in 0 until n) sum += buf[i].toDouble() * buf[i].toDouble()
-                    val rms = Math.sqrt(sum / n) / 32768.0
-                    val db = if (rms <= 0.0) -90.0 else 20.0 * Math.log10(rms)
+                    if (n <= 0) { monitorFailMs = System.currentTimeMillis(); break }
+                    var pk = 0
+                    for (i in 0 until n) { val a = abs(buf[i].toInt()); if (a > pk) pk = a }
+                    val peak = pk / 32768.0
+                    val db = if (peak <= 0.0) -90.0 else 20.0 * Math.log10(peak)
                     val lv = levelFromDb(db)
                     if (wantsFrames()) onLevel(lv)
                 }
             } catch (_: Exception) {
+                monitorFailMs = System.currentTimeMillis()
             } finally {
                 runCatching { rec.stop() }
                 rec.release()
             }
         }.also { it.isDaemon = true; it.start() }
+    }
+
+    /** Apre un AudioRecord sul dispositivo indicato (null = predefinito). null se non si apre. */
+    @SuppressLint("MissingPermission")
+    private fun openMonitor(dev: AudioDeviceInfo?, rate: Int): android.media.AudioRecord? {
+        val min = android.media.AudioRecord.getMinBufferSize(rate, android.media.AudioFormat.CHANNEL_IN_MONO, android.media.AudioFormat.ENCODING_PCM_16BIT)
+        if (min <= 0) return null
+        val rec = try {
+            android.media.AudioRecord(
+                android.media.MediaRecorder.AudioSource.MIC, rate,
+                android.media.AudioFormat.CHANNEL_IN_MONO, android.media.AudioFormat.ENCODING_PCM_16BIT, min * 2,
+            )
+        } catch (e: Exception) { return null }
+        if (rec.state != android.media.AudioRecord.STATE_INITIALIZED) { rec.release(); return null }
+        if (dev != null) rec.setPreferredDevice(dev)
+        return rec
     }
 
     fun stopMonitor() {
@@ -882,7 +905,7 @@ class CameraController(
                         val a = e.recordingStats.audioStats.audioAmplitude.toDouble()
                         val norm = if (a > 1.0) a / 32767.0 else a
                         val db = if (norm <= 0.0) -90.0 else 20.0 * Math.log10(norm)
-                        onLevel(levelFromDb(db - 10.0))   // il picco sta circa 10 dB sopra il valore medio
+                        onLevel(levelFromDb(db))   // ampiezza di picco, come il monitor
                     }
                     is VideoRecordEvent.Finalize -> {
                         lvlSmooth = 0

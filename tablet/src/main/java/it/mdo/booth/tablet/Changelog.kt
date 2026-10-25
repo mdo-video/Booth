@@ -21,6 +21,15 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(46, "1.41", "Durata scelta dall'ospite", listOf(
+            "Sul tablet, in basso a destra, l'ospite sceglie la durata del video con uno slider: 30, 60, 90 o 120 secondi",
+        )),
+        Entry(45, "1.40", "Volume e durata", listOf(
+            "Barra del volume più a sinistra, a metà tra l'anteprima e il bordo, e il doppio più spessa",
+            "Scala in dB reali: in basso -60 dB, in alto 0 dB; tacche a -18 dB (giallo) e -6 dB (rosso)",
+            "Microfono USB di nuovo rilevato: la barra lo segue anche se lo colleghi dopo l'avvio",
+            "Durata massima con uno slider: 30, 60, 90 o 120 secondi",
+        )),
         Entry(44, "1.39", "Volume microfono", listOf(
             "La barra del volume funziona anche prima di premere REC",
             "Barra più stabile: il rumore di fondo del silenzio non la muove più",
