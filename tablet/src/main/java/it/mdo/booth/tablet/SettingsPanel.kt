@@ -309,9 +309,23 @@ private fun GallerySettings(client: BoothClient, local: LocalSettings) {
         Text("Nessuna dedica sul telefono camera.", color = Color.Gray, fontSize = 14.sp)
     } else {
         val hiddenCount = items.count { it.name in local.hidden }
+        val curEvent = client.info.collectAsState().value?.optString("prefix").orEmpty()
+        val curItems = items.filter { curEvent.isNotEmpty() && it.name.substringBeforeLast('_', "") == curEvent }
+        var confirmDel by remember { mutableStateOf(false) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Chip("Nascondi tutte", false) { local.hidden = local.hidden + items.map { it.name }; local.save() }
             if (hiddenCount > 0) Chip("Mostra tutte ($hiddenCount)", false) { local.hidden = local.hidden - items.map { it.name }.toSet(); local.save() }
+        }
+        if (curItems.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Chip(if (confirmDel) "Conferma: elimina ${curItems.size} (definitivo)" else "Elimina tutte (evento in corso)", confirmDel) {
+                    if (confirmDel) {
+                        curItems.forEach { client.send("DEL:${it.name}") }
+                        confirmDel = false
+                    } else confirmDel = true
+                }
+                if (confirmDel) Chip("Annulla", false) { confirmDel = false }
+            }
         }
         items.chunked(4).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {

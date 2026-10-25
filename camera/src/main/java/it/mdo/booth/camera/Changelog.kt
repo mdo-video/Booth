@@ -21,6 +21,12 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(43, "1.38", "Eventi, volume e dediche", listOf(
+            "Barra del volume del microfono sul tablet mentre registri un video",
+            "Pellicola del tablet: solo l'evento in corso; prima del collegamento niente tasto REC",
+            "Impostazioni tablet: Elimina tutte (evento in corso) con conferma",
+            "Controllo: tocco = anteprima, tocco lungo = selezione, Seleziona tutto, Elimina, Nuovo evento con data",
+        )),
         Entry(42, "1.37", "Pagina QR", listOf(
             "Sotto il tasto Scarica c'è un suggerimento per condividere il file",
         )),

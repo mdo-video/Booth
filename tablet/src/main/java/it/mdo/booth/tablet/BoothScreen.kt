@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import org.json.JSONObject
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -64,7 +65,11 @@ fun BoothScreen(
     val state by client.state.collectAsState()
     val info by client.info.collectAsState()
     val allHistory by client.history.collectAsState()
-    val history = allHistory.filter { it.name !in local.hidden }
+    // la pellicola mostra solo l'evento in corso (stesso nome file del telefono camera)
+    val curEvent = info?.optString("prefix").orEmpty()
+    val history = allHistory.filter {
+        it.name !in local.hidden && (curEvent.isEmpty() || it.name.substringBeforeLast('_', "") == curEvent)
+    }
 
     var starting by remember { mutableStateOf(false) }
     var countdown by remember { mutableIntStateOf(0) }
@@ -510,7 +515,7 @@ fun BoothScreen(
         }
 
         // comandi in basso: interruttore VIDEO/FOTO + tasto REC
-        if (!hasTake && !processing) {
+        if (connected && !hasTake && !processing) {
             val photoOk = info?.optBoolean("hasPhoto") == true
             val isPhoto = photoMode && photoOk
             Row(
@@ -581,7 +586,7 @@ fun BoothScreen(
 
         // torcia e focali
         if (!wide && !hasTake && !processing && connected && viewing == null) {
-            info?.let { CameraControls(client, it, Modifier.align(Alignment.CenterEnd).padding(top = zoneTop, bottom = zoneBottom, end = 24.dp)) }
+            info?.let { CameraControls(client, it, Modifier.align(Alignment.CenterEnd).padding(top = zoneTop, bottom = zoneBottom, end = 56.dp)) }
         }
 
         // batteria e spazio del telefono
@@ -608,6 +613,18 @@ fun BoothScreen(
                         .clip(RoundedCornerShape(24.dp)).background(Color(0x99000000))
                         .padding(horizontal = 28.dp, vertical = 14.dp)
                 },
+            )
+        }
+
+        // volume del microfono (modalità video): bordo destro, alla stessa altezza della pellicola
+        val videoMode = !(photoMode && info?.optBoolean("hasPhoto") == true)
+        if (connected && videoMode && !hasTake && !processing && viewing == null) {
+            val lvl by client.level.collectAsState()
+            VuMeter(
+                level = lvl,
+                modifier = Modifier.align(Alignment.CenterEnd)
+                    .padding(end = 16.dp, top = if (wide) zoneTop else 24.dp, bottom = if (wide) zoneBottom else 24.dp)
+                    .fillMaxHeight(),
             )
         }
 

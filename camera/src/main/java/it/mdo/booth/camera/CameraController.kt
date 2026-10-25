@@ -91,6 +91,7 @@ class CameraController(
     private val onPreviewFrame: (ByteArray) -> Unit,
     private val onState: (String) -> Unit,   // persistente: READY | RECORDING | TAKE:file | TAKE_SAVED:file:nome
     private val onEvent: (String) -> Unit,   // una tantum: SAVED:nome | ERROR:x
+    private val onLevel: (Int) -> Unit = {},    // livello microfono 0..100 durante il video
     private val onInfo: (String) -> Unit,    // JSON con capacità e impostazioni correnti
     private val onOrientation: (String) -> Unit = {},  // landscape | portrait
 ) {
@@ -814,7 +815,14 @@ class CameraController(
             .start(ContextCompat.getMainExecutor(context)) { e ->
                 when (e) {
                     is VideoRecordEvent.Start -> onState("RECORDING")
+                    is VideoRecordEvent.Status -> {
+                        val a = e.recordingStats.audioStats.audioAmplitude.toDouble()
+                        val norm = if (a > 1.0) a / 32767.0 else a
+                        val db = if (norm <= 0.0) -90.0 else 20.0 * Math.log10(norm)
+                        onLevel(((db + 60.0) / 60.0 * 100.0).toInt().coerceIn(0, 100))
+                    }
                     is VideoRecordEvent.Finalize -> {
+                        onLevel(0)
                         main.removeCallbacks(autoStop)
                         recording = null
                         if (e.hasError()) {

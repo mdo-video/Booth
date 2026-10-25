@@ -551,6 +551,13 @@ private fun SettingsTab(api: Api, upd: UpdateManager) {
                         )
                         Chip("Applica", false) { sendPhone("prefix", prefix) }
                     }
+                    Row {
+                        Chip("Nuovo evento (aggiunge la data)", false) {
+                            val day = java.text.SimpleDateFormat("ddMMyy", java.util.Locale.ROOT).format(java.util.Date())
+                            val base = prefix.substringBefore("_$day").take(23).ifEmpty { "evento" }
+                            send(JSONObject().put("phone", JSONObject().put("prefix", "${base}_$day").put("counter", 0)))
+                        }
+                    }
                     val next = info.optInt("counter") + 1
                     Text("Prossimo file: ${info.optString("prefix")}_${"%03d".format(next)}.mp4", color = Color.White, fontSize = 16.sp)
                     Row { Chip("Azzera numerazione", false) { sendPhone("counter", 0) } }

@@ -172,6 +172,11 @@ class StreamServer(
         broadcastText("EVENT:$ev")
     }
 
+    /** Livello del microfono 0..100 mentre registra (la barra sul tablet). */
+    fun sendLevel(v: Int) {
+        broadcastText("LEVEL:$v")
+    }
+
     fun sendInfo(json: String) {
         lastInfo = json
         broadcastText("INFO:$json")

@@ -134,6 +134,7 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread { status.text = "Booth Camera\nStato: $s" }
             },
             onEvent = srv::sendEvent,
+            onLevel = srv::sendLevel,
             onInfo = srv::sendInfo,
             onOrientation = { o ->
                 runOnUiThread {

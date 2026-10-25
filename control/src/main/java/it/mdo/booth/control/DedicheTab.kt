@@ -13,7 +13,9 @@ import android.os.Looper
 import android.provider.MediaStore
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -275,6 +277,7 @@ fun DedicheTab(api: DedicheApi, tablet: Api) {
     var status by remember { mutableStateOf("") }
     var result by remember { mutableStateOf("") }
     var showIp by remember { mutableStateOf(false) }
+    var confirmDel by remember { mutableStateOf(false) }
     // dediche nascoste sul tablet (le manda il tablet nello stato)
     val hidden: Set<String> = tablet.status?.optJSONArray("hidden")?.let { a -> List(a.length()) { a.getString(it) }.toSet() } ?: emptySet()
 
@@ -285,7 +288,7 @@ fun DedicheTab(api: DedicheApi, tablet: Api) {
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Chip("↻ Aggiorna", false) { scope.launch { api.refresh() } }
             Chip("Nuove", false) { selected = api.items.filter { it.name !in api.downloaded }.map { it.name }.toSet() }
-            Chip("Tutte", false) { selected = api.items.map { it.name }.toSet() }
+            Chip("Seleziona tutto", false) { selected = api.items.map { it.name }.toSet() }
             Chip("Nessuna", false) { selected = emptySet() }
             Chip("IP", showIp) { showIp = !showIp }
         }
@@ -312,7 +315,11 @@ fun DedicheTab(api: DedicheApi, tablet: Api) {
             groups.forEach { (ev, list) ->
             if (ev.isNotEmpty() && groups.size > 1) {
                 item(key = "ev_$ev", span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
-                    Text(ev, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
+                    Text(
+                        "$ev  ·  ${list.size}  (tocca per selezionare l'evento)",
+                        color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 8.dp).clickable { selected = selected + list.map { it.name } },
+                    )
                 }
             }
             items(list, key = { it.name }) { d ->
@@ -322,6 +329,7 @@ fun DedicheTab(api: DedicheApi, tablet: Api) {
                     hidden = d.name in hidden,
                     selected = d.name in selected,
                     onToggle = { selected = if (d.name in selected) selected - d.name else selected + d.name },
+                    selecting = selected.isNotEmpty(),
                     onOpen = {
                         val u = api.fileUrl(d)
                         if (u != null) {
@@ -358,6 +366,25 @@ fun DedicheTab(api: DedicheApi, tablet: Api) {
                     }
                 }
             }
+            if (selected.isNotEmpty() && !busy) {
+                Chip(if (confirmDel) "Conferma: elimina ${selected.size}" else "🗑 Elimina (${selected.size})", confirmDel) {
+                    if (!confirmDel) { confirmDel = true; return@Chip }
+                    confirmDel = false
+                    val todo = api.items.filter { it.name in selected }
+                    selected = emptySet()
+                    scope.launch {
+                        busy = true
+                        status = "Elimino…"
+                        var ok = 0
+                        todo.forEach { if (api.delete(it)) ok++ }
+                        busy = false
+                        status = ""
+                        result = "✓ $ok eliminate dal telefono camera"
+                        api.refresh()
+                    }
+                }
+                if (confirmDel) Chip("Annulla", false) { confirmDel = false }
+            }
             Chip(if (busy) status else "⬇ Scarica in Galleria (${selected.size})", selected.isNotEmpty() || busy) {
                 if (busy || selected.isEmpty()) return@Chip
                 scope.launch {
@@ -386,11 +413,13 @@ fun DedicheTab(api: DedicheApi, tablet: Api) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun DedicaCell(api: DedicheApi, d: Dedica, hidden: Boolean, selected: Boolean, onToggle: () -> Unit, onOpen: () -> Unit) {
+private fun DedicaCell(api: DedicheApi, d: Dedica, hidden: Boolean, selected: Boolean, onToggle: () -> Unit, selecting: Boolean, onOpen: () -> Unit) {
     val bmp by produceState<Bitmap?>(null, d.name, api.base) { value = api.thumb(d) }
     Box(
-        Modifier.aspectRatio(1f).clip(RoundedCornerShape(10.dp)).background(Color(0xFF1B1E25)).clickable { onToggle() }
+        Modifier.aspectRatio(1f).clip(RoundedCornerShape(10.dp)).background(Color(0xFF1B1E25))
+            .combinedClickable(onClick = { if (selecting) onToggle() else onOpen() }, onLongClick = { onToggle() })
     ) {
         bmp?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
         if (selected) Box(Modifier.fillMaxSize().background(Color(0x883D5AFE)))

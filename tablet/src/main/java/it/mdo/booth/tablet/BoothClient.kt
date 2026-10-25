@@ -40,6 +40,7 @@ class BoothClient(context: Context) {
     val state = MutableStateFlow("OFFLINE")
     /** capacità e impostazioni correnti del telefono */
     val info = MutableStateFlow<JSONObject?>(null)
+    val level = MutableStateFlow(0)
     /** eventi una tantum: SAVED:nome | ERROR:x */
     val events = MutableSharedFlow<String>(extraBufferCapacity = 8)
 
@@ -234,6 +235,7 @@ class BoothClient(context: Context) {
                         events.tryEmit(text.removePrefix("EVENT:"))
                         if (text.startsWith("EVENT:SAVED:") || text.startsWith("EVENT:DELETED:")) refreshHistory()
                     }
+                    text.startsWith("LEVEL:") -> level.value = text.removePrefix("LEVEL:").toIntOrNull() ?: 0
                     text.startsWith("INFO:") -> runCatching { info.value = JSONObject(text.removePrefix("INFO:")) }
                 }
             }
