@@ -249,7 +249,7 @@ class BoothClient(context: Context) {
                     text.startsWith("LEVEL:") -> {
                         val v = text.removePrefix("LEVEL:").toIntOrNull() ?: 0
                         level.value = v
-                        BoothLive.setLevel(v)
+                        BoothLive.updateLevel(v)
                     }
                     text.startsWith("INFO:") -> runCatching { info.value = JSONObject(text.removePrefix("INFO:")) }
                 }

@@ -21,7 +21,7 @@ object BoothLive {
     @Volatile var level = 0
     @Volatile var levelAt = 0L
     val levelNow: Int get() = if (System.currentTimeMillis() - levelAt < 2000) level else 0
-    fun setLevel(v: Int) { level = v; levelAt = System.currentTimeMillis() }
+    fun updateLevel(v: Int) { level = v; levelAt = System.currentTimeMillis() }
 
     val wanted: Boolean get() = System.currentTimeMillis() - lastRequest < 4000
     val fresh: Boolean get() = jpeg != null && System.currentTimeMillis() - at < 3000
