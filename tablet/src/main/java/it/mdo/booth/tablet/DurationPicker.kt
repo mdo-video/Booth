@@ -35,13 +35,13 @@ fun DurationPicker(current: Int, onPick: (Int) -> Unit, modifier: Modifier = Mod
     }
     val shown = options[idx.roundToInt().coerceIn(0, options.lastIndex)]
     Column(
-        modifier.width(280.dp).clip(RoundedCornerShape(20.dp)).background(Color(0xB3000000))
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier.width(190.dp).clip(RoundedCornerShape(20.dp)).background(Color(0xB3000000))
+            .padding(horizontal = 12.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             Lang.t("Durata massima: $shown s", "Max length: $shown s"),
-            color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
+            color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
         )
         Slider(
             value = idx,
@@ -51,8 +51,8 @@ fun DurationPicker(current: Int, onPick: (Int) -> Unit, modifier: Modifier = Mod
             steps = options.size - 2,
             colors = SliderDefaults.colors(thumbColor = Color(0xFFFF2D55), activeTrackColor = Color(0xFFFF2D55)),
         )
-        Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            options.forEach { Text("$it", color = Color(0xCCFFFFFF), fontSize = 12.sp) }
+        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            options.forEach { Text("$it", color = Color(0xCCFFFFFF), fontSize = 11.sp) }
         }
     }
 }

@@ -572,7 +572,7 @@ fun BoothScreen(
             DurationPicker(
                 current = pickInfo.optInt("duration", 60),
                 onPick = { client.set(JSONObject().put("duration", it)) },
-                modifier = Modifier.align(Alignment.BottomEnd).padding(end = if (wide) 168.dp else 24.dp, bottom = 24.dp),
+                modifier = Modifier.align(Alignment.BottomEnd).padding(end = if (wide) 96.dp else 24.dp, bottom = 24.dp),
             )
         }
 

@@ -21,6 +21,9 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(47, "1.42", "Slider durata più piccolo", listOf(
+            "Lo slider della durata è più compatto e non copre più il tasto torcia/flash",
+        )),
         Entry(46, "1.41", "Durata scelta dall'ospite", listOf(
             "Sul tablet, in basso a destra, l'ospite sceglie la durata del video con uno slider: 30, 60, 90 o 120 secondi",
         )),
