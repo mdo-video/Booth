@@ -112,6 +112,25 @@ class Api(ctx: Context) {
         }.getOrDefault(false)
     }
 
+    /** Come refresh() ma senza l'elenco dei video: serve al servizio di avvisi. */
+    suspend fun refreshLight() = withContext(Dispatchers.IO) {
+        val b = base ?: return@withContext
+        try {
+            val st = get("$b/status?k=$key")
+            if (st.first == 401) {
+                authError = true
+                return@withContext
+            }
+            if (st.first != 200) return@withContext
+            authError = false
+            status = JSONObject(st.second)
+            lastOk = System.currentTimeMillis()
+            val lg = JSONArray(get("$b/log?n=100&k=$key").second)
+            log = List(lg.length()) { lg.getJSONObject(it) }.reversed()
+        } catch (_: Exception) {
+        }
+    }
+
     suspend fun refresh() = withContext(Dispatchers.IO) {
         val b = base ?: return@withContext
         try {

@@ -21,6 +21,11 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(52, "1.47", "Avvisi anche a schermo spento", listOf(
+            "Controllo ti manda una notifica se il telefono camera si scollega, se la sua batteria è bassa o se manca spazio",
+            "Funziona anche con lo schermo spento e l'app chiusa; si può spegnere da Impostazioni, Avvisi",
+            "Un problema viene segnalato solo se resta per qualche secondo, per evitare falsi allarmi",
+        )),
         Entry(51, "1.46", "Volume nella Diretta booth", listOf(
             "Diretta booth: sotto l'anteprima c'è la barra del volume del microfono, con scala da -60 a 0 dB e picco",
         )),

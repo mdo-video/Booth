@@ -76,6 +76,7 @@ class MainActivity : ComponentActivity() {
         api = Api(this).also { it.start() }
         val upd = UpdateManager(this, "booth-control.apk", BuildConfig.UPDATE_TOKEN).also { it.check(); it.startAutoCheck() }
         updRef = upd
+        if (MonitorService.enabled(this)) MonitorService.start(this)
         upd.handleIntent(intent)
         window.decorView.post { Changelog.showIfNew(this, upd.installedCode()) }
         if (android.os.Build.VERSION.SDK_INT >= 33 &&
@@ -146,9 +147,9 @@ private fun eventText(e: String): String = when (e) {
     else -> e
 }
 
-private class Health(val level: Int, val title: String, val reasons: List<String>)
+internal class Health(val level: Int, val title: String, val reasons: List<String>)
 
-private fun health(api: Api): Health {
+internal fun health(api: Api): Health {
     val st: JSONObject? = api.status
     if (api.base == null) return Health(2, "Tablet non trovato", listOf("Sei sulla stessa rete Wi-Fi del tablet? Oppure scrivi l'IP in Impostazioni."))
     if (api.authError) return Health(2, "Codice errato", listOf("Scrivi in Impostazioni il codice mostrato sul tablet."))
@@ -733,6 +734,15 @@ private fun SettingsTab(api: Api, upd: UpdateManager) {
                 "Trovato: " + (api.foundHost ?: "no") + "  •  telefono e tablet devono stare sulla stessa rete.",
                 color = Color.Gray, fontSize = 13.sp,
             )
+        }
+        Card("AVVISI") {
+            var monitorOn by remember { mutableStateOf(MonitorService.enabled(sctx)) }
+            Text("Avvisi anche con lo schermo spento", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Chip("Accesi", monitorOn) { monitorOn = true; MonitorService.setEnabled(sctx, true) }
+                Chip("Spenti", !monitorOn) { monitorOn = false; MonitorService.setEnabled(sctx, false) }
+            }
+            Note("Ti manda una notifica se il telefono camera si scollega, se la batteria è bassa o se manca spazio.")
         }
         Card("AGGIORNAMENTI") {
             Text("App del tablet", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
