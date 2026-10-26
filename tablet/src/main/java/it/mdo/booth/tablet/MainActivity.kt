@@ -51,13 +51,15 @@ class LocalSettings(private val prefs: SharedPreferences) {
     var filtersUi by mutableStateOf(prefs.getBoolean("filtersUi", true))
     /** effetti personalizzati (testo JSON), mandati anche al telefono */
     var customFilters by mutableStateOf(prefs.getString("customFilters", "") ?: "")
+    /** effetti mostrati agli ospiti, scelti dalle impostazioni (vuoto = scelta consigliata) */
+    var shownFx by mutableStateOf(prefs.getString("shownFx", "") ?: "")
 
     /** dediche nascoste dalla pellicola (restano sul telefono camera) */
     var hidden by mutableStateOf(prefs.getStringSet("hidden", emptySet())?.toSet() ?: emptySet())
     /** dopo quanti secondi di inattività ricompare la splash (0 = mai, solo all'apertura) */
     var splashIdleSec by mutableIntStateOf(prefs.getInt("splashIdleSec", 0))
 
-    init { Lang.en = lang == "en"; Filters.setCustom(customFilters) }
+    init { Lang.en = lang == "en"; Filters.setCustom(customFilters); Filters.setShown(shownFx) }
 
     fun save() {
         Lang.en = lang == "en"
@@ -77,6 +79,7 @@ class LocalSettings(private val prefs: SharedPreferences) {
             .putString("lang", lang)
             .putBoolean("filtersUi", filtersUi)
             .putString("customFilters", customFilters)
+            .putString("shownFx", shownFx)
             .putStringSet("hidden", hidden)
             .putInt("splashIdleSec", splashIdleSec)
             .putInt("borderMode", borderMode)

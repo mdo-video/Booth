@@ -21,6 +21,11 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(53, "1.48", "Scelta degli effetti e editor a cursori", listOf(
+            "Impostazioni, Effetti: nuova griglia con tutti gli effetti e la loro anteprima dal vivo; tocchi quelli da mostrare agli ospiti (massimo 7)",
+            "Nuovo editor a cursori per creare i tuoi effetti (colori vivi, rosso, verde, blu, luminosità) con anteprima, senza scrivere testo",
+            "I tuoi effetti già creati restano e si possono modificare o eliminare",
+        )),
         Entry(51, "1.46", "Codice di abbinamento e ritorno veloce", listOf(
             "Dopo Salva, con il QR spento, si torna subito alla schermata Pronto: la dedica resta salvata",
             "Impostazioni, Telefono camera: nuovo campo per il codice di abbinamento del telefono camera",

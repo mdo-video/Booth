@@ -67,10 +67,21 @@ object Filters {
     val custom: List<F> get() = customList
     val all: List<F> get() = builtin + customList
 
+    /** Scelta fatta dalle impostazioni (id separati da virgola, nell'ordine in cui compaiono). Vuota = scelta consigliata. */
+    private var shownIds by mutableStateOf<List<String>>(emptyList())
+    fun setShown(csv: String) {
+        shownIds = csv.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+    }
+
     /** Effetti mostrati agli ospiti: massimo 7 (Normale + i migliori). Quelli personalizzati prendono i posti in fondo. */
     private val PICK = listOf("none", "cinema", "gold", "romantic", "noir", "vintage", "neon")
     val shown: List<F>
         get() {
+            if (shownIds.isNotEmpty()) {
+                val chosen = shownIds.mapNotNull { id -> all.firstOrNull { it.id == id } }
+                val withNone = if (chosen.any { it.id == "none" }) chosen else listOf(builtin[0]) + chosen
+                return withNone.take(7)
+            }
             val c = customList.take(7)
             val base = PICK.mapNotNull { id -> builtin.firstOrNull { it.id == id } }
             return (base.take(7 - c.size) + c).take(7)
@@ -86,7 +97,7 @@ object Filters {
             for (i in 0 until arr.length()) {
                 val o = arr.getJSONObject(i)
                 val raw = o.optString("id", "").ifBlank { "f${i + 1}" }
-                val id = "u_" + raw.lowercase().filter { it.isLetterOrDigit() || it == '_' }.take(24)
+                val id = customId(raw)
                 val nome = o.optString("nome", o.optString("name", raw)).take(18)
                 val name = o.optString("name", nome).take(18)
                 val mat = o.optJSONArray("matrice")
@@ -107,6 +118,23 @@ object Filters {
         }.getOrNull()
     }
 
+    /** Identificativo interno di un effetto personalizzato. */
+    fun customId(raw: String): String = "u_" + raw.lowercase().filter { it.isLetterOrDigit() || it == '_' }.take(24)
+
+    /** Gli effetti personalizzati come oggetti JSON (lista vuota se il testo è vuoto o non valido). */
+    fun customObjects(json: String): List<JSONObject> = runCatching {
+        val t = json.trim()
+        if (t.isEmpty()) emptyList() else {
+            val arr = if (t.startsWith("[")) JSONArray(t) else JSONArray().put(JSONObject(t))
+            List(arr.length()) { arr.getJSONObject(it) }
+        }
+    }.getOrDefault(emptyList())
+
+    fun toJson(list: List<JSONObject>): String = if (list.isEmpty()) "" else JSONArray(list).toString()
+
+    /** Matrice colori di un effetto fatto con i cursori (1 = nessuna modifica). */
+    fun customMatrix(sat: Float, r: Float, g: Float, b: Float, lum: Float): FloatArray = tone(sat, r * lum, g * lum, b * lum)
+
     /** Imposta gli effetti personalizzati; se il testo non è valido restano quelli di prima. */
     fun setCustom(json: String) {
         parseOrNull(json)?.let { customList = it }
@@ -123,8 +151,10 @@ object Filters {
 
     fun label(f: F): String = Lang.t(f.name, f.nameEn)
 
-    fun colorFilter(id: String): ColorFilter? {
-        val m = get(id).m ?: return null
+    fun colorFilter(id: String): ColorFilter? = colorFilterOf(get(id).m)
+
+    fun colorFilterOf(m: FloatArray?): ColorFilter? {
+        if (m == null) return null
         return ColorFilter.colorMatrix(
             ColorMatrix(
                 floatArrayOf(

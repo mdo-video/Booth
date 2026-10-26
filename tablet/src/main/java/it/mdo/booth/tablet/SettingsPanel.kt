@@ -136,29 +136,7 @@ fun SettingsPanel(
             SettingCard {
                 Section("EFFETTI")
                 SwitchRow("Mostra gli effetti agli ospiti", local.filtersUi) { local.filtersUi = it; local.save() }
-                Label("Effetti personalizzati (testo)")
-                OutlinedTextField(
-                    value = local.customFilters,
-                    onValueChange = { local.customFilters = it; Filters.setCustom(it); local.save() },
-                    minLines = 3,
-                    maxLines = 8,
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
-                )
-                val parsedCustom = Filters.parseOrNull(local.customFilters)
-                Text(
-                    when {
-                        local.customFilters.isBlank() -> "Nessun effetto personalizzato"
-                        parsedCustom == null -> "Testo non valido: controlla virgole, virgolette e parentesi"
-                        else -> "${parsedCustom.size} effetti personalizzati pronti"
-                    },
-                    color = if (parsedCustom == null) Color(0xFFFF8A80) else Color(0xFFB8AEC4),
-                    fontSize = 14.sp,
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Chip("Inserisci esempio", false) { local.customFilters = Filters.EXAMPLE; Filters.setCustom(Filters.EXAMPLE); local.save() }
-                    Chip("Cancella", false) { local.customFilters = ""; Filters.setCustom(""); local.save() }
-                }
+                EffectsSettings(client, local)
             }
             SettingCard {
                 Section("MESSAGGI E QR")
