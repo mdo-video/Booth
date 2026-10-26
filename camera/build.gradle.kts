@@ -56,4 +56,5 @@ dependencies {
     implementation("io.ktor:ktor-server-partial-content:2.3.12")
     implementation("io.ktor:ktor-server-auto-head-response:2.3.12")
     implementation("org.slf4j:slf4j-android:1.7.36")
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
 }

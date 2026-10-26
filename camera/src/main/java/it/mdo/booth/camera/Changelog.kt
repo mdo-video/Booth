@@ -21,6 +21,11 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(55, "1.50", "Caricamento su Google Drive", listOf(
+            "Nuova scheda Google Drive: collega il tuo account e ogni dedica salvata va in Drive, cartella Booth Dediche, una sottocartella per evento",
+            "Caricamento automatico (si può spegnere) e tasto per caricare quelle non ancora caricate",
+            "Opzione solo Wi-Fi; se manca internet riprova da solo ogni minuto e la coda resta anche se chiudi l'app",
+        )),
         Entry(54, "1.49", "Novità sempre giuste", listOf(
             "Dopo un aggiornamento le novità mostrano ora la versione giusta, e anche quelle che ti eri perso",
         )),

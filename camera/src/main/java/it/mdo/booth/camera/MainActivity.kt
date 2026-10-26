@@ -69,6 +69,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var valMic: TextView
     private lateinit var secCode: TextView
     private lateinit var secBtn: Button
+    private lateinit var driveText: TextView
+    private lateinit var driveConnBtn: Button
+    private lateinit var driveAutoBtn: Button
+    private lateinit var driveWifiBtn: Button
+    private lateinit var driveNowBtn: Button
+    private val driveClient by lazy { DriveClient(this) }
+    private var drive: DriveUploader? = null
+    private var driveMsg = ""
 
     // stato mostrato
     private var curState = "READY"
@@ -100,6 +108,7 @@ class MainActivity : AppCompatActivity() {
     private val uiTick = object : Runnable {
         override fun run() {
             render()
+            renderDrive()
             ui.postDelayed(this, 1000)
         }
     }
@@ -255,6 +264,27 @@ class MainActivity : AppCompatActivity() {
         right.addView(secCard, lp(match, wrap, top = 12))
         renderSec()
 
+        // scheda GOOGLE DRIVE
+        val driveCard = card("GOOGLE DRIVE")
+        driveText = tv("", 14f, cSub)
+        driveCard.addView(driveText, lp(match, wrap, top = 8))
+        driveConnBtn = chipBtn("Collega Drive", cBlue).apply { setOnClickListener { onDriveConnect() } }
+        driveCard.addView(driveConnBtn, lp(match, wrap, top = 10))
+        driveAutoBtn = chipBtn("", cChip).apply {
+            setOnClickListener { drive?.let { it.auto = !it.auto }; renderDrive() }
+        }
+        driveCard.addView(driveAutoBtn, lp(match, wrap, top = 8))
+        driveWifiBtn = chipBtn("", cChip).apply {
+            setOnClickListener { drive?.let { it.wifiOnly = !it.wifiOnly }; renderDrive() }
+        }
+        driveCard.addView(driveWifiBtn, lp(match, wrap, top = 8))
+        driveNowBtn = chipBtn("Carica ora quelle non ancora caricate", cChip).apply {
+            setOnClickListener { drive?.enqueue(camera?.historyNames().orEmpty()) }
+        }
+        driveCard.addView(driveNowBtn, lp(match, wrap, top = 8))
+        right.addView(driveCard, lp(match, wrap, top = 12))
+        renderDrive()
+
         // scheda SCHERMO
         screenCard = card("SCHERMO")
         screenCard.addView(
@@ -309,6 +339,63 @@ class MainActivity : AppCompatActivity() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         applyLayout()
+    }
+
+    private fun onDriveConnect() {
+        driveClient.connect(this) { ok, err ->
+            runOnUiThread {
+                driveMsg = if (ok || err.isEmpty()) "" else err
+                renderDrive()
+                if (ok) drive?.kick()
+            }
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == DriveClient.REQ_AUTH) {
+            val ok = resultCode == RESULT_OK && driveClient.handleResult(data)
+            driveMsg = if (ok) "" else "Collegamento a Drive annullato"
+            renderDrive()
+            if (ok) drive?.kick()
+        }
+    }
+
+    private fun renderDrive() {
+        if (!::driveText.isInitialized) return
+        val d = drive
+        val on = driveClient.connected
+        val lines = ArrayList<String>()
+        if (!on) {
+            lines.add("Non collegato. Collega un account Google: le dediche andranno in Drive, cartella \"Booth Dediche\".")
+        } else if (d == null) {
+            lines.add("Collegato a Google Drive.")
+        } else {
+            val queued = runCatching { org.json.JSONObject(d.statusJson()).optInt("queued") }.getOrDefault(0)
+            lines.add(
+                when {
+                    d.current.isNotEmpty() -> "Carico ${d.current}  ${d.pct}%" + if (queued > 1) "  ·  in coda ${queued - 1}" else ""
+                    queued > 0 -> "In coda: $queued"
+                    else -> "✓ Tutto caricato (${d.doneNames().size})"
+                }
+            )
+            if (d.lastError.isNotEmpty()) lines.add("⚠ " + d.lastError)
+        }
+        if (driveMsg.isNotEmpty()) lines.add("⚠ $driveMsg")
+        driveText.text = lines.joinToString("\n")
+        driveConnBtn.text = if (on) "Cambia account / rinnova consenso" else "Collega Drive"
+        driveConnBtn.background = roundBg(if (on) cChip else cBlue, 24)
+        val auto = d?.auto ?: true
+        val wifi = d?.wifiOnly ?: false
+        driveAutoBtn.text = if (auto) "Caricamento automatico: acceso" else "Caricamento automatico: spento"
+        driveAutoBtn.background = roundBg(if (auto) 0xFF2E7D32.toInt() else cChip, 24)
+        driveWifiBtn.text = if (wifi) "Solo con Wi-Fi: acceso" else "Solo con Wi-Fi: spento (usa anche i dati)"
+        driveWifiBtn.background = roundBg(if (wifi) 0xFF2E7D32.toInt() else cChip, 24)
+        val vis = if (on) View.VISIBLE else View.GONE
+        driveAutoBtn.visibility = vis
+        driveWifiBtn.visibility = vis
+        driveNowBtn.visibility = vis
     }
 
     private fun renderSec() {
@@ -458,6 +545,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun boot() {
+        val up = DriveUploader(this, driveClient, { n -> camera?.historyFile(n) }, { runOnUiThread { renderDrive() } })
+        drive = up
         val srv = StreamServer(
             takeFile = { name -> camera?.takeFile(name) },
             onCommand = { cmd -> runOnUiThread { handle(cmd) } },
@@ -466,6 +555,7 @@ class MainActivity : AppCompatActivity() {
             thumbFile = { name -> camera?.thumbFile(name) },
             onFrame = { bytes -> camera?.saveFrame(bytes) ?: false },
             pairKey = { if (Pairing.required(this@MainActivity)) Pairing.key(this@MainActivity) else null },
+            driveStatus = { up.statusJson() },
         )
         val cam = CameraController(
             context = this,
@@ -480,7 +570,12 @@ class MainActivity : AppCompatActivity() {
                     render()
                 }
             },
-            onEvent = srv::sendEvent,
+            onEvent = { e ->
+                srv.sendEvent(e)
+                if (e.startsWith("SAVED:")) {
+                    runOnUiThread { if (up.auto && driveClient.connected) up.enqueue(listOf(e.removePrefix("SAVED:"))) }
+                }
+            },
             onLevel = srv::sendLevel,
             onInfo = { j ->
                 srv.sendInfo(j)
@@ -501,6 +596,7 @@ class MainActivity : AppCompatActivity() {
         srv.start()
         cam.start()
         nsd = NsdAdvertiser(this).also { it.register(StreamServer.PORT) }
+        up.start()
         CameraService.start(this)
         askBatteryExemption()
         booted = true
@@ -517,6 +613,12 @@ class MainActivity : AppCompatActivity() {
             cmd == "SAVE" -> cam.saveTake()
             cmd == "DISCARD" -> cam.discardTake()
             cmd == "INFO?" -> cam.refreshInfo()
+            cmd.startsWith("DRIVE_UP:") -> {
+                val b = cmd.removePrefix("DRIVE_UP:").trim()
+                val names = if (b == "*") cam.historyNames() else b.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+                if (driveClient.connected) drive?.enqueue(names)
+            }
+            cmd.startsWith("DRIVE_AUTO:") -> { drive?.auto = cmd.endsWith("1"); renderDrive() }
             cmd.startsWith("DEL:") -> cam.deleteHistory(cmd.removePrefix("DEL:"))
             cmd.startsWith("SET:") -> runCatching { cam.applySettings(JSONObject(cmd.removePrefix("SET:"))) }
         }

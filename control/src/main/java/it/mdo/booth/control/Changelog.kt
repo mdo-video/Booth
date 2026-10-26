@@ -21,6 +21,10 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(55, "1.50", "Caricamento su Google Drive", listOf(
+            "Controllo: nella scheda Dediche vedi lo stato del caricamento su Drive, le dediche già caricate (☁) e i tasti Carica su Drive e Automatico",
+            "Il caricamento lo fa il telefono camera, che deve avere internet e il consenso a Drive",
+        )),
         Entry(54, "1.49", "Novità sempre giuste", listOf(
             "Dopo un aggiornamento le novità mostrano ora la versione giusta, e anche quelle che ti eri perso",
         )),

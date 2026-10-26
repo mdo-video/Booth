@@ -17,6 +17,7 @@ import io.ktor.server.http.content.LocalFileContent
 import io.ktor.server.plugins.autohead.AutoHeadResponse
 import io.ktor.server.plugins.partialcontent.PartialContent
 import io.ktor.server.request.receive
+import io.ktor.server.request.receiveText
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
@@ -55,6 +56,8 @@ class StreamServer(
     private val onFrame: (ByteArray) -> Boolean = { false },
     /** codice di abbinamento richiesto, oppure null se la protezione è spenta */
     private val pairKey: () -> String? = { null },
+    /** stato del caricamento su Drive (JSON) */
+    private val driveStatus: () -> String = { "{}" },
 ) {
     companion object {
         const val PORT = 8080
@@ -119,6 +122,22 @@ class StreamServer(
                 get("/list") {
                     if (!keyOk(call)) { call.respond(HttpStatusCode.Unauthorized); return@get }
                     call.respondText(historyList(), ContentType.Application.Json)
+                }
+                get("/drive") {
+                    if (!keyOk(call)) { call.respond(HttpStatusCode.Unauthorized); return@get }
+                    call.respondText(driveStatus(), ContentType.Application.Json)
+                }
+                // corpo: nomi separati da virgola, oppure * = tutte le dediche non ancora caricate
+                post("/drive/up") {
+                    if (!keyOk(call)) { call.respond(HttpStatusCode.Unauthorized); return@post }
+                    val body = call.receiveText().trim()
+                    onCommand("DRIVE_UP:" + body)
+                    call.respondText("OK")
+                }
+                post("/drive/auto") {
+                    if (!keyOk(call)) { call.respond(HttpStatusCode.Unauthorized); return@post }
+                    onCommand("DRIVE_AUTO:" + (call.request.queryParameters["on"] ?: "1"))
+                    call.respondText("OK")
                 }
                 get("/t/{name}") {
                     if (!keyOk(call)) { call.respond(HttpStatusCode.Unauthorized); return@get }

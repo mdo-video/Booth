@@ -262,6 +262,53 @@ class DedicheApi(private val ctx: Context) {
         }
     }
 
+    // ---- caricamento su Google Drive (lo fa il telefono camera; qui si comanda e si vede lo stato) ----
+    var drive by mutableStateOf<JSONObject?>(null)
+
+    val uploaded: Set<String>
+        get() = drive?.optJSONArray("done")?.let { a -> List(a.length()) { a.getString(it) }.toSet() } ?: emptySet()
+
+    suspend fun refreshDrive() {
+        val b = base
+        if (b == null) { drive = null; return }
+        drive = withContext(Dispatchers.IO) {
+            try {
+                http.newCall(Request.Builder().url("$b/drive").build()).execute().use { r ->
+                    if (r.isSuccessful) JSONObject(r.body?.string() ?: "{}") else null
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
+    /** names = elenco, oppure "*" per tutte le non ancora caricate. */
+    suspend fun driveUpload(names: String): Boolean {
+        val b = base ?: return false
+        val ok = withContext(Dispatchers.IO) {
+            try {
+                http.newCall(Request.Builder().url("$b/drive/up").post(names.toRequestBody()).build()).execute().use { it.isSuccessful }
+            } catch (e: Exception) {
+                false
+            }
+        }
+        refreshDrive()
+        return ok
+    }
+
+    suspend fun driveAuto(on: Boolean): Boolean {
+        val b = base ?: return false
+        val ok = withContext(Dispatchers.IO) {
+            try {
+                http.newCall(Request.Builder().url("$b/drive/auto?on=${if (on) 1 else 0}").post("".toRequestBody()).build()).execute().use { it.isSuccessful }
+            } catch (e: Exception) {
+                false
+            }
+        }
+        refreshDrive()
+        return ok
+    }
+
     fun markDownloaded(name: String) {
         downloaded = downloaded + name
         prefs.edit().putStringSet("dedicheScaricate", downloaded).apply()
@@ -286,6 +333,13 @@ fun DedicheTab(api: DedicheApi, tablet: Api) {
 
     // all'apertura e quando il telefono camera viene trovato (o cambia l'IP)
     LaunchedEffect(api.base) { api.refresh() }
+    // stato del caricamento su Drive, ogni 3 secondi
+    LaunchedEffect(api.base) {
+        while (true) {
+            api.refreshDrive()
+            delay(3000)
+        }
+    }
 
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -306,6 +360,19 @@ fun DedicheTab(api: DedicheApi, tablet: Api) {
         }
         if (api.message.isNotEmpty()) Text(api.message, color = Color.Gray, fontSize = 15.sp)
         if (api.loading) Text("Carico l'elenco…", color = Color.Gray, fontSize = 15.sp)
+        api.drive?.let { dv ->
+            val queued = dv.optInt("queued")
+            val cur = dv.optString("current")
+            val err = dv.optString("error")
+            val line = when {
+                !dv.optBoolean("connected") -> "☁ Drive non collegato: collegalo dall'app Camera"
+                cur.isNotEmpty() -> "☁ Carico $cur ${dv.optInt("pct")}%" + if (queued > 1) " · in coda ${queued - 1}" else ""
+                queued > 0 -> "☁ In coda su Drive: $queued"
+                else -> "☁ Tutto caricato su Drive (${api.uploaded.size})"
+            }
+            Text(line, color = Color(0xFF90CAF9), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            if (err.isNotEmpty() && dv.optBoolean("connected")) Text("⚠ $err", color = Color(0xFFFFB74D), fontSize = 14.sp)
+        }
         if (result.isNotEmpty()) Text(result, color = Color(0xFF81C784), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
 
         LazyVerticalGrid(
@@ -392,6 +459,21 @@ fun DedicheTab(api: DedicheApi, tablet: Api) {
                 }
                 if (confirmDel) Chip("Annulla", false) { confirmDel = false }
             }
+            if (api.drive?.optBoolean("connected") == true && !busy) {
+                Chip(if (selected.isNotEmpty()) "☁ Carica su Drive (${selected.size})" else "☁ Carica tutte le nuove", false) {
+                    val names = if (selected.isEmpty()) "*" else selected.joinToString(",")
+                    val n = selected.size
+                    selected = emptySet()
+                    scope.launch {
+                        val ok = api.driveUpload(names)
+                        result = if (ok) (if (n == 0) "☁ Caricamento avviato (le non ancora caricate)" else "☁ $n messe in coda su Drive") else "Non riesco a contattare il telefono camera"
+                    }
+                }
+                val autoOn = api.drive?.optBoolean("auto") == true
+                Chip(if (autoOn) "☁ Automatico: acceso" else "☁ Automatico: spento", autoOn) {
+                    scope.launch { api.driveAuto(!autoOn) }
+                }
+            }
             Chip(if (busy) status else "⬇ Scarica in Galleria (${selected.size})", selected.isNotEmpty() || busy) {
                 if (busy || selected.isEmpty()) return@Chip
                 scope.launch {
@@ -454,6 +536,14 @@ private fun DedicaCell(api: DedicheApi, d: Dedica, hidden: Boolean, selected: Bo
                 fontSize = 11.sp,
                 color = Color(0xFFFFB74D),
                 modifier = Modifier.align(Alignment.CenterStart).padding(4.dp).background(Color(0x99000000), RoundedCornerShape(6.dp)).padding(horizontal = 4.dp),
+            )
+        }
+        if (d.name in api.uploaded) {
+            Text(
+                "☁",
+                fontSize = 13.sp,
+                color = Color(0xFF90CAF9),
+                modifier = Modifier.align(Alignment.CenterEnd).padding(4.dp).background(Color(0x99000000), RoundedCornerShape(6.dp)).padding(horizontal = 4.dp),
             )
         }
         if (d.name in api.downloaded) {

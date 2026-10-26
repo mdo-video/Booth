@@ -218,6 +218,9 @@ class CameraController(
     private fun historyItems(): List<File> =
         (historyDir.listFiles()?.filter { isMedia(it) } ?: emptyList()).sortedByDescending { it.lastModified() }
 
+    /** Nomi di tutte le dediche salvate (dalla più recente). */
+    fun historyNames(): List<String> = historyItems().map { it.name }
+
     /** File dello storico (video .mp4 o foto .jpg) per nome. */
     fun historyFile(name: String): File? {
         val clean = File(name).name
