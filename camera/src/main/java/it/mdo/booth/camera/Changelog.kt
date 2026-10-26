@@ -21,6 +21,9 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(54, "1.49", "Novità sempre giuste", listOf(
+            "Dopo un aggiornamento le novità mostrano ora la versione giusta, e anche quelle che ti eri perso",
+        )),
         Entry(51, "1.46", "Codice di abbinamento e servizio attivo", listOf(
             "Nuova scheda Codice di abbinamento: con la protezione accesa il telefono risponde solo al tablet che ha il codice",
             "Servizio in primo piano con notifica fissa: Android non chiude più l'app durante l'evento",
@@ -155,10 +158,17 @@ object Changelog {
     /** dopo un aggiornamento mostra le novità dell'ultima versione, una volta sola */
     fun showIfNew(a: Activity, installedCode: Int) {
         val prefs = a.getSharedPreferences("changelog", Context.MODE_PRIVATE)
-        if (prefs.getInt("seen", 0) >= installedCode) return
+        val seen = prefs.getInt("seen", 0)
+        if (seen >= installedCode) return
         prefs.edit().putInt("seen", installedCode).apply()
-        val latest = entries.firstOrNull { it.code <= installedCode } ?: return
-        show(a, listOf(latest))
+        // prima installazione: solo l'ultima novità; dopo un aggiornamento: tutte quelle che mancavano (al massimo 3)
+        val news = if (seen == 0) {
+            entries.filter { it.code <= installedCode }.take(1)
+        } else {
+            entries.filter { it.code in (seen + 1)..installedCode }.take(3)
+        }
+        if (news.isEmpty()) return
+        show(a, news)
     }
 
     /** storico completo */
