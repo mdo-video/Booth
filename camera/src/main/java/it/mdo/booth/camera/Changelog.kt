@@ -21,6 +21,12 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(56, "1.51", "Filtri AR sul volto", listOf(
+            "Camera: riconosce i volti e disegna i filtri (serve la luce: al buio possono sparire)",
+            "Nuovi filtri AR: Corona, Occhiali, Baffi, Coniglietto e Cuori. Seguono il volto (anche inclinato) e funzionano con più persone",
+            "Si vedono dal vivo nell'anteprima e finiscono in foto e video. Il video si elabora a fine ripresa, come per cornice ed effetti",
+            "Per mostrarli agli ospiti: Impostazioni, Effetti, tocca quelli che vuoi (massimo 7 in tutto)",
+        )),
         Entry(55, "1.50", "Caricamento su Google Drive", listOf(
             "Nuova scheda Google Drive: collega il tuo account e ogni dedica salvata va in Drive, cartella Booth Dediche, una sottocartella per evento",
             "Caricamento automatico (si può spegnere) e tasto per caricare quelle non ancora caricate",

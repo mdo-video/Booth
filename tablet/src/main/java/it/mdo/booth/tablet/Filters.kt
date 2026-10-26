@@ -61,6 +61,12 @@ object Filters {
         F("ocean", "Oceano", "Ocean", tone(1.2f, 0.80f, 1.0f, 1.20f)),
         F("matrix", "Matrix", "Matrix", floatArrayOf(0.03f, 0.06f, 0.01f, 0.33f, 0.66f, 0.11f, 0.03f, 0.06f, 0.01f)),
         F("alien", "Alieno", "Alien", floatArrayOf(0f, 1f, 0f, 1f, 0f, 0f, 0f, 0f, 1f)),
+        // filtri AR sul volto: nessun cambio di colore, li disegna il telefono camera (anche nell'anteprima)
+        F("ar_crown", "AR Corona", "AR Crown", null),
+        F("ar_glasses", "AR Occhiali", "AR Shades", null),
+        F("ar_mustache", "AR Baffi", "AR Mustache", null),
+        F("ar_bunny", "AR Coniglietto", "AR Bunny", null),
+        F("ar_hearts", "AR Cuori", "AR Hearts", null),
     )
 
     private var customList by mutableStateOf<List<F>>(emptyList())

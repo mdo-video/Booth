@@ -32,6 +32,8 @@ import android.media.MediaMetadataRetriever
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
+import java.util.concurrent.atomic.AtomicBoolean
 import android.provider.MediaStore
 import android.util.Size
 import androidx.camera.core.Camera
@@ -120,6 +122,17 @@ class CameraController(
     @Volatile private var processing = false   // cornice in applicazione
     private var transformer: Transformer? = null
     private var overlayBmp: Bitmap? = null
+
+    // ---- filtri AR (volti) ----
+    private val tracker = FaceTracker()
+    private val detectExecutor = Executors.newSingleThreadExecutor()
+    private val detecting = AtomicBoolean(false)
+    @Volatile private var liveFaces: List<ArFace> = emptyList()
+    @Volatile private var liveFacesMs = 0L
+    private var lastDetectMs = 0L
+    @Volatile private var recT0 = 0L
+    private val arTrack = ArrayList<ArTrackPt>()
+    private var arOverlay: ArOverlay? = null
     @Volatile private var frameBmp: Bitmap? = null
     @Volatile private var frameId = ""
     private val autoStop = Runnable { stopRecording() }
@@ -375,6 +388,7 @@ class CameraController(
         val out = Bitmap.createBitmap(cw, ch, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(out)
         canvas.drawBitmap(upright, Rect(cx, cy, cx + cw, cy + ch), Rect(0, 0, cw, ch), Filters.paint(filter))
+        arStill(canvas, upright, cx, cy)
         canvas.drawBitmap(frame, null, Rect(0, 0, cw, ch), Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
         val tmp = File(file.parentFile, file.name + ".tmp")
         val ok = tmp.outputStream().use { out.compress(Bitmap.CompressFormat.JPEG, 95, it) }
@@ -406,7 +420,9 @@ class CameraController(
             Bitmap.createBitmap(src, 0, 0, src.width, src.height, Matrix().apply { postRotate(deg) }, true)
         } else src
         val out = Bitmap.createBitmap(upright.width, upright.height, Bitmap.Config.ARGB_8888)
-        Canvas(out).drawBitmap(upright, 0f, 0f, Filters.paint(filter))
+        val cv = Canvas(out)
+        cv.drawBitmap(upright, 0f, 0f, Filters.paint(filter))
+        arStill(cv, upright, 0, 0)
         val tmp = File(file.parentFile, file.name + ".tmp")
         val ok = tmp.outputStream().use { out.compress(Bitmap.CompressFormat.JPEG, 95, it) }
         out.recycle()
@@ -417,6 +433,17 @@ class CameraController(
             return "salvataggio foto"
         }
         return null
+    }
+
+    /** Filtro AR su una foto: cerca i volti nell'immagine dritta e disegna (ox, oy = angolo del ritaglio). */
+    private fun arStill(cv: Canvas, upright: Bitmap, ox: Int, oy: Int) {
+        if (!ArFilters.isAr(filter)) return
+        val faces = tracker.detectStill(upright)
+        if (faces.isEmpty()) return
+        cv.save()
+        cv.translate(-ox.toFloat(), -oy.toFloat())
+        ArFilters.draw(cv, filter, faces, upright.width, upright.height)
+        cv.restore()
     }
 
     private fun finishPhoto(file: File) {
@@ -472,7 +499,7 @@ class CameraController(
 
     /** Video: ricodifica con effetto colore e/o cornice (Media3 Transformer). Se fallisce resta il video originale. */
     @SuppressLint("UnsafeOptInUsageError")
-    private fun applyVideoFrame(src: File, frameIn: Bitmap?) {
+    private fun applyVideoFrame(src: File, frameIn: Bitmap?, track: List<ArTrackPt> = emptyList()) {
         val size = videoDisplaySize(src)
         var frame = frameIn
         if (frame != null && (size == null || !sizeFitsFrame(size.first, size.second) ||
@@ -496,6 +523,11 @@ class CameraController(
                 effects.add(object : RgbMatrix {
                     override fun getMatrix(presentationTimeUs: Long, useHdr: Boolean): FloatArray = m4
                 })
+            }
+            if (ArFilters.isAr(filter) && size != null && track.isNotEmpty()) {
+                val ov = ArOverlay(size.first, size.second, filter, track)
+                arOverlay = ov
+                effects.add(OverlayEffect(ImmutableList.of<TextureOverlay>(ov)))
             }
             if (fr != null && size != null) {
                 // l'overlay Media3 occupa "dimensione bitmap / dimensione video": a misura esatta copre tutto il fotogramma
@@ -531,6 +563,8 @@ class CameraController(
         main.removeCallbacks(progressTick)
         transformer = null
         overlayBmp = null
+        arOverlay?.free()
+        arOverlay = null
         if (ok && out != null && out.length() > 0L) {
             src.delete()
             beginTake(out)
@@ -832,9 +866,53 @@ class CameraController(
         if (rebind) bind() else { applyControls(); publishInfo() }
     }
 
+    /** Con un filtro AR: i volti si cercano (in un altro thread, ~12 volte al secondo) e il filtro si disegna sul fotogramma dell'anteprima. */
+    private fun analyzeAr(image: ImageProxy, now: Long) {
+        val rec = recording != null
+        val wants = wantsFrames()
+        val doDetect = now - lastDetectMs >= 80 && !detecting.get()
+        val doFrame = wants && now - lastFrameMs >= 1000 / PREVIEW_FPS - 8
+        if (!doDetect && !doFrame) return
+        val rot = image.imageInfo.rotationDegrees
+        var bmp = image.toBitmap()
+        if (rot != 0) bmp = Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, Matrix().apply { postRotate(rot.toFloat()) }, true)
+        if (doDetect) {
+            lastDetectMs = now
+            detecting.set(true)
+            val copy = bmp.copy(Bitmap.Config.ARGB_8888, false)
+            val tFrame = SystemClock.elapsedRealtime()
+            detectExecutor.execute {
+                try {
+                    val f = ArFilters.smooth(liveFaces, tracker.detectLive(copy))
+                    liveFaces = f
+                    liveFacesMs = System.currentTimeMillis()
+                    if (recording != null && recT0 > 0L) synchronized(arTrack) { arTrack.add(ArTrackPt(tFrame - recT0, f)) }
+                } catch (t: Throwable) {
+                    // riconoscimento non riuscito: il filtro non si vede per questo fotogramma
+                } finally {
+                    copy.recycle()
+                    detecting.set(false)
+                }
+            }
+        }
+        if (doFrame) {
+            lastFrameMs = now
+            val faces = if (now - liveFacesMs < 500) liveFaces else emptyList()
+            val draw = if (bmp.isMutable) bmp else bmp.copy(Bitmap.Config.ARGB_8888, true)
+            if (faces.isNotEmpty()) ArFilters.draw(Canvas(draw), filter, faces, draw.width, draw.height)
+            val bos = ByteArrayOutputStream(64 * 1024)
+            draw.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, bos)
+            onPreviewFrame(bos.toByteArray())
+        }
+    }
+
     private fun analyze(image: ImageProxy) {
         image.use {
             val now = System.currentTimeMillis()
+            if (ArFilters.isAr(filter) && (wantsFrames() || recording != null)) {
+                analyzeAr(it, now)
+                return
+            }
             if (!wantsFrames() || now - lastFrameMs < 1000 / PREVIEW_FPS - 8) return
             lastFrameMs = now
             val rot = it.imageInfo.rotationDegrees
@@ -903,7 +981,11 @@ class CameraController(
             .withAudioEnabled()
             .start(ContextCompat.getMainExecutor(context)) { e ->
                 when (e) {
-                    is VideoRecordEvent.Start -> onState("RECORDING")
+                    is VideoRecordEvent.Start -> {
+                        synchronized(arTrack) { arTrack.clear() }
+                        recT0 = SystemClock.elapsedRealtime()
+                        onState("RECORDING")
+                    }
                     is VideoRecordEvent.Status -> {
                         val a = e.recordingStats.audioStats.audioAmplitude.toDouble()
                         val norm = if (a > 1.0) a / 32767.0 else a
@@ -922,7 +1004,9 @@ class CameraController(
                             onState("READY")
                         } else {
                             val fr = frameBmp
-                            if ((frameOn && fr != null) || filter != "none") applyVideoFrame(file, if (frameOn) fr else null) else beginTake(file)
+                            val tr = synchronized(arTrack) { ArrayList(arTrack) }
+                            recT0 = 0L
+                            if ((frameOn && fr != null) || filter != "none") applyVideoFrame(file, if (frameOn) fr else null, tr) else beginTake(file)
                         }
                     }
                     else -> Unit
@@ -1046,6 +1130,7 @@ class CameraController(
         recording?.stop()
         runCatching { audio.unregisterAudioDeviceCallback(audioCallback) }
         analysisExecutor.shutdown()
+        detectExecutor.shutdown()
         io.shutdown()
     }
 }

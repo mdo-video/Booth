@@ -21,6 +21,12 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(56, "1.51", "Filtri AR sul volto", listOf(
+            "Tablet: nella fila degli effetti trovi anche i filtri AR",
+            "Nuovi filtri AR: Corona, Occhiali, Baffi, Coniglietto e Cuori. Seguono il volto (anche inclinato) e funzionano con più persone",
+            "Si vedono dal vivo nell'anteprima e finiscono in foto e video. Il video si elabora a fine ripresa, come per cornice ed effetti",
+            "Per mostrarli agli ospiti: Impostazioni, Effetti, tocca quelli che vuoi (massimo 7 in tutto)",
+        )),
         Entry(54, "1.49", "Novità sempre giuste", listOf(
             "Dopo un aggiornamento le novità mostrano ora la versione giusta, e anche quelle che ti eri perso",
         )),
