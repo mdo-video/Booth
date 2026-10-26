@@ -1,5 +1,7 @@
 package it.mdo.booth.camera
 
+import android.accounts.Account
+import android.accounts.AccountManager
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -23,6 +25,7 @@ class DriveHttpException(val code: Int, msg: String) : Exception("HTTP $code $ms
 class DriveClient(private val ctx: Context) {
     companion object {
         const val REQ_AUTH = 7411
+        const val REQ_ACCOUNT = 7412
         private const val SCOPE = "https://www.googleapis.com/auth/drive.file"
         private const val ROOT = "Booth Dediche"
     }
@@ -33,19 +36,42 @@ class DriveClient(private val ctx: Context) {
         get() = prefs.getBoolean("connected", false)
         set(v) { prefs.edit().putBoolean("connected", v).apply() }
 
-    private fun request() = AuthorizationRequest.builder()
-        .setRequestedScopes(listOf(Scope(SCOPE)))
-        .build()
+    /** Account Google scelto una volta: serve a non far riapparire ogni volta la scelta dell'account. */
+    var accountName: String?
+        get() = prefs.getString("account", null)
+        set(v) { prefs.edit().putString("account", v).apply() }
+
+    /** Ultimo errore, da mostrare nella scheda. */
+    @Volatile
+    var lastError: String = ""
+
+    private fun request(): AuthorizationRequest {
+        val b = AuthorizationRequest.builder().setRequestedScopes(listOf(Scope(SCOPE)))
+        accountName?.let { b.setAccount(Account(it, "com.google")) }
+        return b.build()
+    }
 
     /** Da un thread secondario: il token se il consenso c'è già, altrimenti null. */
     fun tokenOrNull(): String? = try {
-        val r = Tasks.await(Identity.getAuthorizationClient(ctx).authorize(request()))
+        val r = Tasks.await(Identity.getAuthorizationClient(ctx.applicationContext).authorize(request()))
         if (r.hasResolution()) null else r.accessToken
     } catch (e: Exception) {
         null
     }
 
-    /** Dal tasto "Collega Drive": mostra la scelta dell'account e il consenso. */
+    /** Primo passo del tasto "Collega Drive": la scelta dell'account Google tra quelli del telefono. */
+    @Suppress("DEPRECATION")
+    fun chooseAccount(activity: Activity) {
+        val intent = AccountManager.newChooseAccountIntent(
+            null, null, arrayOf("com.google"), null, null, null, null,
+        )
+        activity.startActivityForResult(intent, REQ_ACCOUNT)
+    }
+
+    /** Nome dell'account scelto (dal risultato di chooseAccount), oppure null. */
+    fun accountFrom(data: Intent?): String? = data?.getStringExtra(AccountManager.KEY_ACCOUNT_NAME)
+
+    /** Secondo passo: consenso a Drive per l'account già scelto. */
     fun connect(activity: Activity, onDone: (Boolean, String) -> Unit) {
         Identity.getAuthorizationClient(activity).authorize(request())
             .addOnSuccessListener { r ->
@@ -60,15 +86,20 @@ class DriveClient(private val ctx: Context) {
                     onDone(connected, "")
                 }
             }
-            .addOnFailureListener { e -> onDone(false, e.message ?: "errore") }
+            .addOnFailureListener { e ->
+                lastError = e.message ?: "errore"
+                onDone(false, lastError)
+            }
     }
 
     /** Risultato della schermata di consenso (da onActivityResult). */
     fun handleResult(data: Intent?): Boolean = try {
         val r = Identity.getAuthorizationClient(ctx).getAuthorizationResultFromIntent(data)
         connected = r.accessToken != null
+        if (!connected) lastError = "Google non ha dato il permesso"
         connected
     } catch (e: Exception) {
+        lastError = e.message ?: "errore"
         false
     }
 

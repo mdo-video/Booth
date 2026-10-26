@@ -342,6 +342,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onDriveConnect() {
+        driveMsg = ""
+        renderDrive()
+        // prima si sceglie l'account Google, poi si dà il consenso a Drive
+        driveClient.chooseAccount(this)
+    }
+
+    private fun onDriveAccount(name: String) {
+        driveClient.accountName = name
         driveClient.connect(this) { ok, err ->
             runOnUiThread {
                 driveMsg = if (ok || err.isEmpty()) "" else err
@@ -354,9 +362,19 @@ class MainActivity : AppCompatActivity() {
     @Suppress("DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == DriveClient.REQ_ACCOUNT) {
+            val name = if (resultCode == RESULT_OK) driveClient.accountFrom(data) else null
+            if (name == null) {
+                driveMsg = "Scelta dell'account annullata"
+                renderDrive()
+            } else {
+                onDriveAccount(name)
+            }
+        }
         if (requestCode == DriveClient.REQ_AUTH) {
             val ok = resultCode == RESULT_OK && driveClient.handleResult(data)
-            driveMsg = if (ok) "" else "Collegamento a Drive annullato"
+            driveMsg = if (ok) "" else "Collegamento a Drive non riuscito" +
+                (driveClient.lastError.takeIf { it.isNotEmpty() }?.let { ": $it" } ?: "")
             renderDrive()
             if (ok) drive?.kick()
         }
@@ -370,7 +388,7 @@ class MainActivity : AppCompatActivity() {
         if (!on) {
             lines.add("Non collegato. Collega un account Google: le dediche andranno in Drive, cartella \"Booth Dediche\".")
         } else if (d == null) {
-            lines.add("Collegato a Google Drive.")
+            lines.add("Collegato a Google Drive" + (driveClient.accountName?.let { " ($it)" } ?: "") + ".")
         } else {
             val queued = runCatching { org.json.JSONObject(d.statusJson()).optInt("queued") }.getOrDefault(0)
             lines.add(

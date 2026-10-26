@@ -21,6 +21,10 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(57, "1.52", "Collegamento a Drive più sicuro", listOf(
+            "Collega Drive: ora scegli l'account Google una volta sola e l'app lo ricorda, anche se sul telefono hai più account",
+            "Se il collegamento non riesce, la scheda mostra il motivo",
+        )),
         Entry(56, "1.51", "Filtri AR sul volto", listOf(
             "Camera: riconosce i volti e disegna i filtri (serve la luce: al buio possono sparire)",
             "Nuovi filtri AR: Corona, Occhiali, Baffi, Coniglietto e Cuori. Seguono il volto (anche inclinato) e funzionano con più persone",
