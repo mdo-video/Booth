@@ -91,6 +91,8 @@ class DedicheApi(private val ctx: Context) {
     private val thumbs = HashMap<String, Bitmap>()
 
     var manualHost by mutableStateOf(prefs.getString("camHost", "") ?: "")
+    /** Codice a 6 cifre del telefono camera (mostrato nell'app Camera): serve se lì la protezione è accesa. */
+    var camKey by mutableStateOf(prefs.getString("camKey", "") ?: "")
     var foundHost by mutableStateOf<String?>(null)
     var items by mutableStateOf<List<Dedica>>(emptyList())
     var loading by mutableStateOf(false)
@@ -98,8 +100,12 @@ class DedicheApi(private val ctx: Context) {
     var downloaded by mutableStateOf((prefs.getStringSet("dedicheScaricate", emptySet()) ?: emptySet()).toSet())
 
     fun saveHost() {
-        prefs.edit().putString("camHost", manualHost).apply()
+        prefs.edit().putString("camHost", manualHost).putString("camKey", camKey.trim()).apply()
     }
+
+    /** Richiesta già col codice della camera nell'intestazione X-Key. */
+    private fun rb(): Request.Builder =
+        Request.Builder().apply { camKey.trim().takeIf { it.isNotEmpty() }?.let { header("X-Key", it) } }
 
     val base: String?
         get() {
@@ -154,7 +160,11 @@ class DedicheApi(private val ctx: Context) {
 
     // ---- richieste ----
     private fun url(first: String, name: String): HttpUrl? =
-        base?.let { runCatching { it.toHttpUrl().newBuilder().addPathSegment(first).addPathSegment(name).build() }.getOrNull() }
+        base?.let { runCatching {
+            it.toHttpUrl().newBuilder().addPathSegment(first).addPathSegment(name).apply {
+                camKey.trim().takeIf { k -> k.isNotEmpty() }?.let { k -> addQueryParameter("k", k) }
+            }.build()
+        }.getOrNull() }
 
     /** Indirizzo del file sul telefono camera, per aprirlo in anteprima. */
     fun fileUrl(d: Dedica): String? = url("h", d.name)?.toString()
@@ -174,18 +184,26 @@ class DedicheApi(private val ctx: Context) {
             return
         }
         loading = true
+        var code = 0
+        var err = ""
         val result: List<Dedica>? = withContext(Dispatchers.IO) {
             try {
-                http.newCall(Request.Builder().url("$b/list").build()).execute().use { r ->
+                http.newCall(rb().url("$b/list").build()).execute().use { r ->
+                    code = r.code
                     if (r.isSuccessful) parseList(r.body?.string() ?: "[]") else null
                 }
             } catch (e: Exception) {
+                err = e.javaClass.simpleName + (e.message?.let { ": $it" } ?: "")
                 null
             }
         }
         loading = false
         if (result == null) {
-            message = "Il telefono camera non risponde"
+            message = when {
+                code == 401 -> "Il telefono camera vuole il codice: tocca IP e scrivi il codice a 6 cifre che vedi nell'app Camera"
+                code != 0 -> "Il telefono camera ha risposto con errore $code"
+                else -> "Il telefono camera non risponde ($err)"
+            }
         } else {
             items = result
             message = if (result.isEmpty()) "Nessuna dedica salvata ancora." else ""
@@ -197,7 +215,7 @@ class DedicheApi(private val ctx: Context) {
         val u = url("t", d.thumbName) ?: return null
         val bmp: Bitmap? = withContext(Dispatchers.IO) {
             try {
-                http.newCall(Request.Builder().url(u).build()).execute().use { r ->
+                http.newCall(rb().url(u).build()).execute().use { r ->
                     if (r.isSuccessful) r.body?.bytes()?.let { BitmapFactory.decodeByteArray(it, 0, it.size) } else null
                 }
             } catch (e: Exception) {
@@ -213,7 +231,7 @@ class DedicheApi(private val ctx: Context) {
         val u = url("h", d.name) ?: return false
         return withContext(Dispatchers.IO) {
             try {
-                http.newCall(Request.Builder().url(u).build()).execute().use { r ->
+                http.newCall(rb().url(u).build()).execute().use { r ->
                     val body = r.body
                     if (!r.isSuccessful || body == null) {
                         false
@@ -255,7 +273,7 @@ class DedicheApi(private val ctx: Context) {
         val u = url("del", d.name) ?: return false
         return withContext(Dispatchers.IO) {
             try {
-                http.newCall(Request.Builder().url(u).post("".toRequestBody()).build()).execute().use { it.isSuccessful }
+                http.newCall(rb().url(u).post("".toRequestBody()).build()).execute().use { it.isSuccessful }
             } catch (e: Exception) {
                 false
             }
@@ -273,7 +291,7 @@ class DedicheApi(private val ctx: Context) {
         if (b == null) { drive = null; return }
         drive = withContext(Dispatchers.IO) {
             try {
-                http.newCall(Request.Builder().url("$b/drive").build()).execute().use { r ->
+                http.newCall(rb().url("$b/drive").build()).execute().use { r ->
                     if (r.isSuccessful) JSONObject(r.body?.string() ?: "{}") else null
                 }
             } catch (e: Exception) {
@@ -287,7 +305,7 @@ class DedicheApi(private val ctx: Context) {
         val b = base ?: return false
         val ok = withContext(Dispatchers.IO) {
             try {
-                http.newCall(Request.Builder().url("$b/drive/up").post(names.toRequestBody()).build()).execute().use { it.isSuccessful }
+                http.newCall(rb().url("$b/drive/up").post(names.toRequestBody()).build()).execute().use { it.isSuccessful }
             } catch (e: Exception) {
                 false
             }
@@ -300,7 +318,7 @@ class DedicheApi(private val ctx: Context) {
         val b = base ?: return false
         val ok = withContext(Dispatchers.IO) {
             try {
-                http.newCall(Request.Builder().url("$b/drive/auto?on=${if (on) 1 else 0}").post("".toRequestBody()).build()).execute().use { it.isSuccessful }
+                http.newCall(rb().url("$b/drive/auto?on=${if (on) 1 else 0}").post("".toRequestBody()).build()).execute().use { it.isSuccessful }
             } catch (e: Exception) {
                 false
             }
@@ -332,9 +350,9 @@ fun DedicheTab(api: DedicheApi, tablet: Api) {
     val hidden: Set<String> = tablet.status?.optJSONArray("hidden")?.let { a -> List(a.length()) { a.getString(it) }.toSet() } ?: emptySet()
 
     // all'apertura e quando il telefono camera viene trovato (o cambia l'IP)
-    LaunchedEffect(api.base) { api.refresh() }
+    LaunchedEffect(api.base, api.camKey) { api.refresh() }
     // stato del caricamento su Drive, ogni 3 secondi
-    LaunchedEffect(api.base) {
+    LaunchedEffect(api.base, api.camKey) {
         while (true) {
             api.refreshDrive()
             delay(3000)
@@ -347,13 +365,20 @@ fun DedicheTab(api: DedicheApi, tablet: Api) {
             Chip("Nuove", false) { selected = api.items.filter { it.name !in api.downloaded }.map { it.name }.toSet() }
             Chip("Seleziona tutto", false) { selected = api.items.map { it.name }.toSet() }
             Chip("Nessuna", false) { selected = emptySet() }
-            Chip("IP", showIp) { showIp = !showIp }
+            Chip("IP e codice", showIp) { showIp = !showIp }
         }
         if (showIp) {
             OutlinedTextField(
                 value = api.manualHost,
                 onValueChange = { api.manualHost = it; api.saveHost() },
                 label = { Text("IP telefono camera (vuoto = automatico)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = api.camKey,
+                onValueChange = { api.camKey = it.filter { c -> c.isDigit() }.take(6); api.saveHost() },
+                label = { Text("Codice telefono camera (6 cifre, se la protezione è accesa)") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )

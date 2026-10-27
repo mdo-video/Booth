@@ -21,6 +21,10 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(58, "1.53", "Dediche: codice del telefono camera", listOf(
+            "Controllo: se sul telefono camera la protezione è accesa, la scheda Dediche ora usa il suo codice a 6 cifre (tasto IP e codice)",
+            "Se il codice manca o è sbagliato lo dice chiaramente, invece di \"non risponde\"; ogni altro errore mostra il motivo",
+        )),
         Entry(55, "1.50", "Caricamento su Google Drive", listOf(
             "Controllo: nella scheda Dediche vedi lo stato del caricamento su Drive, le dediche già caricate (☁) e i tasti Carica su Drive e Automatico",
             "Il caricamento lo fa il telefono camera, che deve avere internet e il consenso a Drive",
