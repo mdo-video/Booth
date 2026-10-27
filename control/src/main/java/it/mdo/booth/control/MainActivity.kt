@@ -525,8 +525,15 @@ private fun SettingsTab(api: Api, upd: UpdateManager) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Chip("Orizzontale", orient == "landscape") { sendPhone("orientation", "landscape") }
                         Chip("Verticale", orient == "portrait") { sendPhone("orientation", "portrait") }
+                        Chip("Automatico", orient == "auto") { sendPhone("orientation", "auto") }
                     }
-                    Note("Ruota il telefono nella posizione scelta.")
+                    Note(
+                        if (orient == "auto") "Automatico: segue il telefono camera" + when (info.optString("orientationNow")) {
+                            "portrait" -> " (ora è in verticale)."
+                            "landscape" -> " (ora è in orizzontale)."
+                            else -> "."
+                        } else "Ruota il telefono nella posizione scelta."
+                    )
                 }
                 Card("OBIETTIVO") {
                     Text(

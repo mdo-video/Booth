@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,9 +31,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+
+/**
+ * Misure di un'anteprima che rispetta la proporzione `ar` (larghezza/altezza) dentro un riquadro massimo:
+ * orizzontale -> larga, verticale -> alta e stretta.
+ */
+internal fun fitMedia(ar: Float, maxW: Dp, maxH: Dp): Pair<Dp, Dp> {
+    val a = ar.coerceIn(0.4f, 3f)
+    val w = minOf(maxW, maxH * a)
+    return w to (w / a)
+}
+
+/** Altezza massima dell'anteprima dentro una scheda: lascia posto ai tasti e ai margini, anche per i video verticali. */
+@Composable
+internal fun cardMediaMaxHeight(): Dp {
+    val h = LocalConfiguration.current.screenHeightDp
+    return (h - 330).coerceIn(220, 560).dp
+}
 
 /** Scheda al centro dell'anteprima: guarda il video, poi Salva / Rifai / Condividi (QR). */
 @Composable
@@ -47,13 +67,19 @@ fun TakeCard(
     onShare: () -> Unit,
     modifier: Modifier = Modifier,
     remoteHints: Boolean = false,
+    /** proporzione di partenza (quella dell'anteprima dal vivo); poi si usa quella vera del file */
+    aspect: Float = 16f / 9f,
 ) {
     val hint = { n: Int -> if (remoteHints) "  ·  $n " + Lang.t("clic", if (n == 1) "click" else "clicks") else "" }
+    var realAr by remember(cacheKey) { mutableStateOf<Float?>(null) }
+    val (mw, mh) = fitMedia(realAr ?: aspect, 528.dp, cardMediaMaxHeight())
     Column(
-        modifier.width(560.dp).clip(RoundedCornerShape(24.dp)).background(Color(0xF21C1D22)).padding(16.dp),
+        modifier.width(maxOf(mw, 360.dp) + 32.dp).clip(RoundedCornerShape(24.dp)).background(Color(0xF21C1D22)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        DownloadedMedia(client, path, cacheKey, Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(14.dp)))
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            DownloadedMedia(client, path, cacheKey, Modifier.size(mw, mh).clip(RoundedCornerShape(14.dp)), onAspect = { realAr = it })
+        }
         if (saved) {
             Text(
                 Lang.t("Salvata ✓", "Saved ✓") + " ${savedName ?: ""}",

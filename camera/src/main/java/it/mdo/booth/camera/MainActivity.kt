@@ -495,6 +495,11 @@ class MainActivity : AppCompatActivity() {
         valOrient.text = when (info.optString("orientation")) {
             "portrait" -> "Verticale"
             "landscape" -> "Orizzontale"
+            "auto" -> "Automatico" + when (info.optString("orientationNow")) {
+                "portrait" -> " (verticale)"
+                "landscape" -> " (orizzontale)"
+                else -> ""
+            }
             else -> "—"
         }
         val mic = info.optString("mic")
@@ -604,8 +609,11 @@ class MainActivity : AppCompatActivity() {
             },
             onOrientation = { o ->
                 runOnUiThread {
-                    requestedOrientation = if (o == "portrait") ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                    else ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    requestedOrientation = when (o) {
+                        "portrait" -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                        "auto" -> ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR   // segue il telefono, anche se la rotazione automatica di Android è bloccata
+                        else -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    }
                 }
             },
         )

@@ -135,6 +135,9 @@ class BoothClient(context: Context) {
         })
     }
 
+    /** Miniatura già scaricata (null se non ancora in memoria): serve a dare subito la proporzione giusta. */
+    fun thumbCached(name: String): Bitmap? = thumbs[name]
+
     suspend fun thumb(name: String): Bitmap? {
         thumbs[name]?.let { return it }
         val url = baseUrl?.let { "$it/t/${name.substringBeforeLast('.')}.jpg" } ?: return null

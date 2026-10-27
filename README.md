@@ -118,3 +118,14 @@ Notifica quando esce una nuova versione (tablet, camera, controllo); controllo a
 - Tasti per gli ospiti: restano solo TORCIA e FLASH. CORNICE e AUTO/FISSO si cambiano dalle impostazioni (nuovo interruttore *Blocco FISSO* anche in Controllo).
 - Telecomando: su un video non salvato, lunga/3/4 pressioni = Condividi (salva + QR).
 - **Notifica dashcam veritiera**: "Registrazione video e audio in corso" solo mentre registra; altrimenti "Dashcam ferma" con il motivo (fotocamera non disponibile, ecc.). Con la dashcam disattivata la notifica sparisce (il servizio resta attivo per l'app Controllo; Android la richiede solo finché registra).
+
+## Novità 1.62 — anteprime nel formato giusto e orientamento automatico
+- **Anteprime**: la colonna *Ultime*, la scheda dello scatto appena fatto e quella dello storico usano la proporzione vera del file
+  (miniatura per le dediche salvate, metadati del video/EXIF della foto per l'anteprima grande). Orizzontali larghe, verticali alte, anche insieme.
+- **Ultime dediche**: miniature con angoli morbidi, ombra, numero + ora, ▶ / 📷, contorno oro-fucsia sulla selezionata, contatore nel titolo.
+- **Barra del volume**: video orizzontale = verticale, a metà tra il bordo destro dell'anteprima e quello dello schermo;
+  video verticale = sempre verticale, sull'asse che passa al centro delle due icone in alto e a metà tra il 60 e il 90 del selettore, dalle icone fino al selettore.
+- **Orientamento Automatico** (tablet → Impostazioni → Orientamento video, e app Controllo): il telefono camera segue la sua posizione
+  (`SCREEN_ORIENTATION_FULL_SENSOR`). Se lo schermo ruota e non si sta registrando, la camera si riaggancia dopo ~0,7 s; se ruota durante un video
+  si riaggancia a fine registrazione. Nelle info il telefono manda `orientation` (landscape | portrait | auto) e `orientationNow` (com'è adesso).
+- **Ultime in verticale**: con l'anteprima stretta la colonna diventa una griglia fino a 3 colonne (`columns` in `HistoryStrip`), calcolate dallo spazio libero a sinistra.

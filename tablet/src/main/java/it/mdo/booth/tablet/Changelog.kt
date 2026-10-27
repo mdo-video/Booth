@@ -21,6 +21,14 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(67, "1.62", "Anteprime verticali e orientamento automatico", listOf(
+            "Anteprime che rispettano il formato: video e foto orizzontali restano orizzontali, quelli verticali restano verticali, anche mischiati nella stessa colonna",
+            "Ultime dediche ridisegnate: miniature con angoli morbidi e ombra, numero e ora in basso, ▶ per i video e fotocamera per le foto; la dedica aperta ha il contorno oro e fucsia",
+            "Video verticale: più dediche in \"Ultime\" (fino a 3 colonne, in base allo spazio libero a sinistra dell'anteprima)",
+            "Video verticale: la barra del volume resta verticale, centrata tra le due icone in alto e il 60 e 90 del selettore, e va dalle icone fino al selettore",
+            "Video orizzontale: la barra del volume resta a metà tra il bordo destro dell'anteprima e il bordo destro dello schermo",
+            "Orientamento video: nuovo tasto Automatico, il telefono camera segue la sua posizione (verticale o orizzontale)",
+        )),
         Entry(66, "1.61", "Telecomando programmabile", listOf(
             "Telecomando: 1 clic = scatta o registra secondo la modalità scelta (foto o video), 2 clic = passa da foto a video e viceversa, pressione lunga = torcia in video / flash in foto",
             "Combinazioni programmabili: da Impostazioni → Telecomando (tablet) e dall'app Controllo puoi assegnare a 1, 2, 3, 4 clic e pressione lunga: scatta, foto↔video, torcia/flash, durata video e altro",

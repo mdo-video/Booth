@@ -23,6 +23,10 @@ import android.content.Intent
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
+import android.content.res.Configuration
+import android.hardware.display.DisplayManager
+import android.view.Display
+import android.view.Surface
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.media.AudioDeviceCallback
@@ -149,7 +153,36 @@ class CameraController(
     private var filter = prefs.getString("filter", "none") ?: "none"   // effetto colore su foto e video
     init { Filters.setCustom(prefs.getString("customFilters", "") ?: "") }   // effetti personalizzati mandati dal tablet
     private var frameOn = prefs.getBoolean("frame", false)   // cornice su foto e video
+    /** landscape | portrait | auto (segue l'orientamento fisico del telefono camera) */
     private var orientation = prefs.getString("orientation", "landscape") ?: "landscape"
+
+    // ---- orientamento automatico: se il telefono viene ruotato (e non si sta registrando) si riaggancia la camera ----
+    private val displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+    private var boundRotation = -1          // rotazione dello schermo quando sono state create le funzioni della camera
+    private var boundPortrait = false       // il telefono era in verticale in quel momento
+    private val rebindForRotation = Runnable {
+        if (orientation == "auto" && recording == null && provider != null && displayRotation() != boundRotation) bind()
+    }
+    private val displayListener = object : DisplayManager.DisplayListener {
+        override fun onDisplayAdded(displayId: Int) {}
+        override fun onDisplayRemoved(displayId: Int) {}
+        override fun onDisplayChanged(displayId: Int) { checkRotation() }
+    }
+
+    private fun displayRotation(): Int =
+        displayManager.getDisplay(Display.DEFAULT_DISPLAY)?.rotation ?: Surface.ROTATION_0
+
+    /** Verticale o orizzontale com'è adesso per la camera: con "auto" quello del telefono, altrimenti quello scelto. */
+    private fun orientationNow(): String =
+        if (orientation == "auto") (if (boundPortrait) "portrait" else "landscape") else orientation
+
+    /** Chiamata quando lo schermo ruota o finisce una registrazione: in "auto" rifà il collegamento con la nuova rotazione. */
+    private fun checkRotation() {
+        main.removeCallbacks(rebindForRotation)
+        if (orientation == "auto" && recording == null && provider != null && displayRotation() != boundRotation) {
+            main.postDelayed(rebindForRotation, 700)   // piccola attesa: la rotazione deve finire e non deve rimbalzare
+        }
+    }
     private val camManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
     private var lensDesc = ""
 
@@ -283,6 +316,18 @@ class CameraController(
                 try {
                     r.setDataSource(dst.absolutePath)
                     bmp = r.getFrameAtTime(500_000)
+                    // la miniatura deve avere la stessa proporzione del video (verticale = alta): se il frame è
+                    // uscito storto rispetto alla rotazione indicata nel file, lo si raddrizza
+                    val fw = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
+                    val fh = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
+                    val rot = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
+                    val b0 = bmp
+                    if (b0 != null && fw > 0 && fh > 0) {
+                        val displayPortrait = if (rot == 90 || rot == 270) fw > fh else fh > fw
+                        if ((b0.height > b0.width) != displayPortrait) {
+                            bmp = Bitmap.createBitmap(b0, 0, 0, b0.width, b0.height, Matrix().apply { postRotate(if (rot == 270) 270f else 90f) }, true)
+                        }
+                    }
                 } finally {
                     r.release()
                 }
@@ -592,6 +637,7 @@ class CameraController(
                 bind()
             }
             audio.registerAudioDeviceCallback(audioCallback, main)
+            displayManager.registerDisplayListener(displayListener, main)
             onState("READY")
         }, ContextCompat.getMainExecutor(context))
     }
@@ -606,6 +652,8 @@ class CameraController(
 
     private fun bind() {
         val p = provider ?: return
+        boundRotation = displayRotation()
+        boundPortrait = context.resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT
         val q = QUALITIES[quality] ?: Quality.FHD
         val recorder = Recorder.Builder()
             .setQualitySelector(QualitySelector.from(q, FallbackStrategy.lowerQualityOrHigherThan(q)))
@@ -725,6 +773,7 @@ class CameraController(
         j.put("zoomMin", (info.zoomState.value?.minZoomRatio ?: 1f).toDouble())
         j.put("zoomMax", (info.zoomState.value?.maxZoomRatio ?: 1f).toDouble())
         j.put("orientation", orientation)
+        j.put("orientationNow", orientationNow())
         j.put("hasFlash", info.hasFlashUnit() || torchCameraId != null)
         j.put("flash", flash)
         j.put("hasFrame", frameBmp != null)
@@ -850,7 +899,7 @@ class CameraController(
         }
         if (j.has("orientation") && recording == null) {
             val o = j.getString("orientation")
-            if ((o == "landscape" || o == "portrait") && o != orientation) {
+            if ((o == "landscape" || o == "portrait" || o == "auto") && o != orientation) {
                 orientation = o
                 prefs.edit().putString("orientation", o).apply()
                 onOrientation(o)
@@ -998,6 +1047,7 @@ class CameraController(
                         main.postDelayed({ startMonitor() }, 600)
                         main.removeCallbacks(autoStop)
                         recording = null
+                        main.postDelayed({ checkRotation() }, 1500)   // in "auto": se il telefono è stato ruotato durante il video
                         if (e.hasError()) {
                             file.delete()
                             onEvent("ERROR:${e.error}")
@@ -1129,6 +1179,8 @@ class CameraController(
         runCatching { transformer?.cancel() }
         recording?.stop()
         runCatching { audio.unregisterAudioDeviceCallback(audioCallback) }
+        runCatching { displayManager.unregisterDisplayListener(displayListener) }
+        main.removeCallbacks(rebindForRotation)
         analysisExecutor.shutdown()
         detectExecutor.shutdown()
         io.shutdown()

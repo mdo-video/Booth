@@ -44,6 +44,8 @@ import androidx.compose.ui.unit.sp
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** Richiesta di mostrare i QR: con videoUrl anche quello per scaricare il file. */
 data class QrRequest(val videoUrl: String?)
@@ -118,7 +120,13 @@ private fun makeQr(text: String, size: Int): Bitmap? = runCatching {
  * video con il player, foto come immagine. Così l'anteprima si vede sempre.
  */
 @Composable
-fun DownloadedMedia(client: BoothClient, path: String, cacheKey: String, modifier: Modifier = Modifier) {
+fun DownloadedMedia(
+    client: BoothClient,
+    path: String,
+    cacheKey: String,
+    modifier: Modifier = Modifier,
+    onAspect: (Float) -> Unit = {},
+) {
     val ctx = LocalContext.current
     var file by remember(cacheKey) { mutableStateOf<File?>(null) }
     var progress by remember(cacheKey) { mutableStateOf(0f) }
@@ -147,6 +155,13 @@ fun DownloadedMedia(client: BoothClient, path: String, cacheKey: String, modifie
                 failed = true
             }
         }
+    }
+
+    // proporzione vera del file (video e foto, già con la rotazione applicata): la scheda si adatta
+    LaunchedEffect(file) {
+        val f = file ?: return@LaunchedEffect
+        val a = withContext(Dispatchers.IO) { mediaAspect(f) }
+        if (a != null) onAspect(a)
     }
 
     Box(modifier.background(Color.Black), contentAlignment = Alignment.Center) {
@@ -189,4 +204,29 @@ private fun decodeUpright(path: String): Bitmap? = runCatching {
         else -> 0f
     }
     if (deg == 0f) b else Bitmap.createBitmap(b, 0, 0, b.width, b.height, Matrix().apply { postRotate(deg) }, true)
+}.getOrNull()
+
+/** Larghezza / altezza del file così come lo si vede (rotazione del video o EXIF della foto applicati). */
+private fun mediaAspect(f: File): Float? = runCatching {
+    if (f.name.endsWith(".jpg")) {
+        val o = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(f.absolutePath, o)
+        var w = o.outWidth
+        var h = o.outHeight
+        val exif = ExifInterface(f.absolutePath).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+        if (exif == ExifInterface.ORIENTATION_ROTATE_90 || exif == ExifInterface.ORIENTATION_ROTATE_270) { val t = w; w = h; h = t }
+        if (w > 0 && h > 0) w.toFloat() / h else null
+    } else {
+        val r = android.media.MediaMetadataRetriever()
+        try {
+            r.setDataSource(f.absolutePath)
+            var w = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull() ?: 0
+            var h = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull() ?: 0
+            val rot = r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
+            if (rot == 90 || rot == 270) { val t = w; w = h; h = t }
+            if (w > 0 && h > 0) w.toFloat() / h else null
+        } finally {
+            r.release()
+        }
+    }
 }.getOrNull()

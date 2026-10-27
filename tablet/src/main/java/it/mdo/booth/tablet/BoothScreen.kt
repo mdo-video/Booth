@@ -52,6 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 @Composable
 fun BoothScreen(
@@ -71,6 +73,24 @@ fun BoothScreen(
     val history = allHistory.filter {
         it.name !in local.hidden && (curEvent.isEmpty() || it.name.substringBeforeLast('_', "") == curEvent)
     }
+
+    // proporzione dell'anteprima dal vivo: si aggiorna solo se cambia (telefono orizzontale <-> verticale)
+    val liveAr by remember(client) {
+        client.frame.map { b -> if (b != null && b.height > 0) b.width.toFloat() / b.height else 16f / 9f }.distinctUntilChanged()
+    }.collectAsState(initial = 16f / 9f)
+    val portraitVideo = liveAr < 1f
+    // video verticale: l'anteprima è stretta e a sinistra resta spazio, quindi "Ultime" usa più colonne (max 3); orizzontale: una
+    val screenCfg = androidx.compose.ui.platform.LocalConfiguration.current
+    val stripColumns = if (!portraitVideo) 1 else {
+        val side = when (local.borderMode) { 0 -> 0; 1 -> 24; else -> 168 }
+        val vert = when (local.borderMode) { 0 -> 0; 1 -> 48; else -> 280 }
+        val areaW = screenCfg.screenWidthDp - side * 2
+        val previewW = minOf(areaW.toFloat(), (screenCfg.screenHeightDp - vert) * liveAr)
+        val free = side + (areaW - previewW) / 2f - 16f - 16f   // fino all'anteprima, meno margine a sinistra e respiro
+        (free / 140f).toInt().coerceIn(1, 3)
+    }
+    var readyAr by remember { mutableStateOf(16f / 9f) }
+    LaunchedEffect(liveAr, state) { if (state == "READY") readyAr = liveAr }
 
     var starting by remember { mutableStateOf(false) }
     var countdown by remember { mutableIntStateOf(0) }
@@ -607,6 +627,8 @@ fun BoothScreen(
 
         // anteprima del video appena registrato
         if (hasTake && !takeSaved && base != null) {
+            // proporzione dell'ultima anteprima prima della registrazione (poi la scheda usa quella vera del file)
+            val takeAr = remember(takeFile) { readyAr }
             TakeCard(
                 client = client,
                 path = "/take/$takeFile",
@@ -623,6 +645,7 @@ fun BoothScreen(
                 },
                 modifier = Modifier.align(Alignment.Center).padding(bottom = 32.dp),
                 remoteHints = remoteConnected,
+                aspect = takeAr,
             )
         }
 
@@ -672,27 +695,40 @@ fun BoothScreen(
             }
         }
 
-        // volume del microfono (modalità video): bordo destro, alla stessa altezza della pellicola
+        // volume del microfono (modalità video)
         val videoMode = !(photoMode && info?.optBoolean("hasPhoto") == true)
         if (connected && videoMode && !hasTake && !processing && viewing == null) {
             val lvl by client.level.collectAsState()
-            val liveFrame by client.frame.collectAsState()
-            // la barra sta a metà tra il bordo destro dell'anteprima e il bordo destro dello schermo
-            androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
-                val ar = liveFrame?.let { it.width.toFloat() / it.height } ?: (16f / 9f)
-                val sideMargin = when (local.borderMode) { 0 -> 0.dp; 1 -> 24.dp; else -> 168.dp }
-                val vMargin = when (local.borderMode) { 0 -> 0.dp; 1 -> 48.dp; else -> 280.dp }   // alto + basso
-                val areaW = maxWidth - sideMargin * 2
-                val areaH = maxHeight - vMargin
-                val previewW = minOf(areaW, areaH * ar)
-                val gap = sideMargin + (areaW - previewW) / 2
-                val endPad = if (gap > VuBarWidth + 40.dp) gap / 2 - VuBarWidth / 2 else 16.dp
+            if (portraitVideo) {
+                // video verticale: barra verticale sull'asse che passa al centro delle due icone in alto (Wi-Fi e telecomando)
+                // e a metà tra il 60 e il 90 del selettore (largo 196 dp), dalle icone fino al selettore
                 VuMeter(
                     level = lvl,
                     modifier = Modifier.align(Alignment.CenterEnd)
-                        .padding(end = endPad, top = if (wide) zoneTop else 24.dp, bottom = if (wide) zoneBottom else 24.dp)
+                        .padding(
+                            end = (if (wide) 96.dp else 24.dp) + (196.dp - VuBarWidth) / 2,
+                            top = if (wide) 108.dp else 84.dp,
+                            bottom = 46.dp + 82.dp + 12.dp,   // sopra il selettore della durata
+                        )
                         .fillMaxHeight(),
                 )
+            } else {
+                // video orizzontale: barra verticale a metà tra il bordo destro dell'anteprima e il bordo destro dello schermo
+                androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
+                    val sideMargin = when (local.borderMode) { 0 -> 0.dp; 1 -> 24.dp; else -> 168.dp }
+                    val vMargin = when (local.borderMode) { 0 -> 0.dp; 1 -> 48.dp; else -> 280.dp }   // alto + basso
+                    val areaW = maxWidth - sideMargin * 2
+                    val areaH = maxHeight - vMargin
+                    val previewW = minOf(areaW, areaH * liveAr)
+                    val gap = sideMargin + (areaW - previewW) / 2
+                    val endPad = if (gap > VuBarWidth + 40.dp) gap / 2 - VuBarWidth / 2 else 16.dp
+                    VuMeter(
+                        level = lvl,
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                            .padding(end = endPad, top = if (wide) zoneTop else 24.dp, bottom = if (wide) zoneBottom else 24.dp)
+                            .fillMaxHeight(),
+                    )
+                }
             }
         }
 
@@ -704,6 +740,7 @@ fun BoothScreen(
                 selected = viewing?.name ?: history.firstOrNull()?.name,
                 onSelect = { viewing = it },
                 modifier = Modifier.align(Alignment.CenterStart).padding(start = 16.dp, top = if (wide) zoneTop else 24.dp, bottom = if (wide) zoneBottom else 24.dp),
+                columns = stripColumns,
             )
         }
         viewing?.let { v ->

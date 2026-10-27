@@ -21,6 +21,9 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(67, "1.62", "Anteprime verticali e orientamento automatico", listOf(
+            "Orientamento video: nuovo tasto Automatico, indica anche se il telefono camera è ora in verticale o in orizzontale",
+        )),
         Entry(59, "1.54", "Pagina ospiti come il tablet", listOf(
             "Dediche: l'IP a mano usa sempre la porta giusta (8080), anche se scrivi una porta diversa: prima con :80 non si collegava e non eliminava nulla",
             "La pagina che si apre dal QR agli ospiti ha ora lo stile del tablet (stessi colori, scheda e tasti)",

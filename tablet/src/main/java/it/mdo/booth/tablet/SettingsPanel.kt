@@ -231,8 +231,16 @@ private fun PhoneSettings(client: BoothClient, info: JSONObject) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Chip("Orizzontale", orient == "landscape") { send("orientation", "landscape") }
             Chip("Verticale", orient == "portrait") { send("orientation", "portrait") }
+            Chip("Automatico", orient == "auto") { send("orientation", "auto") }
         }
-        Text("Ruota il telefono nella posizione scelta.", color = Color.Gray, fontSize = 14.sp)
+        Text(
+            if (orient == "auto") "Automatico: segue il telefono camera" + when (info.optString("orientationNow")) {
+                "portrait" -> " (ora è in verticale)."
+                "landscape" -> " (ora è in orizzontale)."
+                else -> "."
+            } else "Ruota il telefono nella posizione scelta.",
+            color = Color.Gray, fontSize = 14.sp,
+        )
     }
 
     SettingCard {

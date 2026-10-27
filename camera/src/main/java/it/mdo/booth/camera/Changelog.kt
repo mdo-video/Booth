@@ -21,6 +21,10 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(67, "1.62", "Anteprime verticali e orientamento automatico", listOf(
+            "Orientamento video: nuova voce Automatico, si adatta a come tieni il telefono (si riaggancia da solo se lo ruoti, mai durante una registrazione)",
+            "Le miniature dei video verticali escono sempre in verticale",
+        )),
         Entry(59, "1.54", "Pagina ospiti come il tablet", listOf(
             "La pagina del QR per gli ospiti ha ora lo stesso stile del tablet: scheda scura, tasto verde Scarica e tasto Condividi dove il telefono lo permette",
         )),
