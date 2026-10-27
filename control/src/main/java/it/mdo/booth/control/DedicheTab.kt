@@ -109,7 +109,10 @@ class DedicheApi(private val ctx: Context) {
 
     val base: String?
         get() {
-            val h = manualHost.trim().ifEmpty { foundHost } ?: return null
+            val manual = manualHost.trim().substringBefore(':').ifEmpty { null }
+            // a mano si scrive solo l'IP: il telefono camera ascolta sempre sulla 8080 (una porta scritta a mano, es. :80, veniva sbagliata)
+            if (manual != null) return "http://$manual:8080"
+            val h = foundHost ?: return null
             return "http://" + (if (h.contains(':')) h else "$h:8080")
         }
 
@@ -371,7 +374,7 @@ fun DedicheTab(api: DedicheApi, tablet: Api) {
             OutlinedTextField(
                 value = api.manualHost,
                 onValueChange = { api.manualHost = it; api.saveHost() },
-                label = { Text("IP telefono camera (vuoto = automatico)") },
+                label = { Text("IP telefono camera, senza porta (vuoto = automatico)") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )

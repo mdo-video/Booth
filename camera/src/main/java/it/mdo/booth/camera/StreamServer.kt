@@ -173,21 +173,15 @@ class StreamServer(
                         val sg = pairKey()?.let { Pairing.sig(it, f.name) }
                         val q1 = if (sg != null) "?s=$sg" else ""
                         val q2 = if (sg != null) "&s=$sg" else ""
-                        val media = if (photo) "<img src=\"/h/${f.name}$q1\" alt=\"\">"
-                        else "<video src=\"/h/${f.name}$q1\" controls playsinline preload=\"metadata\"></video>"
-                        val label = if (photo) "Scarica la foto" else "Scarica il video"
-                        val html = "<!DOCTYPE html><html lang=\"it\"><head><meta charset=\"utf-8\">" +
-                            "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" +
-                            "<title>La tua dedica</title><style>" +
-                            "body{margin:0;background:#14101A;color:#fff;font-family:sans-serif;text-align:center}" +
-                            "img,video{width:100%;max-height:75vh;object-fit:contain;background:#000;display:block}" +
-                            "a.b{display:inline-block;margin:20px 0 28px;padding:16px 34px;border-radius:40px;" +
-                            "background:#FF2D55;color:#fff;font-size:20px;font-weight:bold;text-decoration:none}" +
-                            "p.n{margin:0 24px 28px;color:#B8B0C4;font-size:15px}" +
-                            "</style></head><body>$media" +
-                            "<a class=\"b\" href=\"/h/${f.name}?dl=1$q2\" download=\"${f.name}\">$label</a>" +
-                            "<p class=\"n\">Dopo il download trovi il file nel telefono, aprilo e condividilo come vuoi.</p>" +
-                            "</body></html>"
+                        val src = "/h/${f.name}$q1"
+                        val media = if (photo) "<img src=\"$src\" alt=\"\">"
+                        else "<video src=\"$src\" controls playsinline preload=\"metadata\"></video>"
+                        val html = GUEST_PAGE
+                            .replace("__MEDIA__", media)
+                            .replace("__SRC__", src)
+                            .replace("__DL__", "/h/${f.name}?dl=1$q2")
+                            .replace("__FILE__", f.name)
+                            .replace("__PHOTO__", if (photo) "true" else "false")
                         call.respondText(html, ContentType.Text.Html)
                     }
                 }
@@ -244,6 +238,61 @@ class StreamServer(
         engine?.stop(300, 1000)
     }
 }
+
+/** Pagina del QR per gli ospiti: stessi colori, scheda e tasti del tablet (verde Salva/Scarica, rosa, contorno Condividi). */
+private val GUEST_PAGE = """<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#14101A">
+<title>La tua dedica</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%}
+body{background:#14101A;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;
+padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom))}
+.card{width:100%;max-width:560px;background:#1C1D22;border-radius:24px;padding:16px;display:flex;flex-direction:column;gap:12px;
+box-shadow:0 12px 40px rgba(0,0,0,.45)}
+.media{border-radius:14px;overflow:hidden;background:#000;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center}
+.media img,.media video{width:100%;height:100%;object-fit:contain;display:block;background:#000}
+.ok{color:#66BB6A;font-size:16px;font-weight:600}
+.big{display:flex;align-items:center;justify-content:center;height:64px;border-radius:16px;background:#2E7D32;color:#fff;
+font-size:22px;font-weight:700;text-decoration:none;border:0;width:100%;font-family:inherit;cursor:pointer}
+.big:active{filter:brightness(.9)}
+.out{display:flex;align-items:center;justify-content:center;height:50px;border-radius:14px;background:#1F2025;border:1px solid #343539;
+color:#fff;font-size:17px;font-weight:600;width:100%;font-family:inherit;cursor:pointer}
+.out:active{background:#2A2B31}
+.hint{margin:4px 4px 2px;color:#B8B0C4;font-size:14px;line-height:1.4;text-align:center}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#FF2D55;margin-right:8px}
+</style></head><body>
+<div class="card">
+<div class="media">__MEDIA__</div>
+<div class="ok" id="ok"></div>
+<a class="big" id="dl" href="__DL__" download="__FILE__"></a>
+<button class="out" id="sh" style="display:none"></button>
+<p class="hint" id="hint"></p>
+</div>
+<script>
+(function(){
+var it=(navigator.language||"it").toLowerCase().indexOf("it")===0, photo=__PHOTO__, src="__SRC__", name="__FILE__";
+function t(a,b){return it?a:b}
+document.getElementById("ok").textContent=t("La tua dedica è pronta ✓","Your message is ready ✓");
+document.getElementById("dl").textContent=photo?t("Scarica la foto","Download photo"):t("Scarica il video","Download video");
+document.getElementById("hint").textContent=t("Dopo il download trovi il file nel telefono: aprilo e condividilo come vuoi.","After downloading, find the file on your phone and share it as you like.");
+var sh=document.getElementById("sh");
+if(navigator.share){
+  sh.style.display="flex"; sh.textContent=t("Condividi","Share");
+  sh.onclick=function(){
+    fetch(src).then(function(r){return r.blob()}).then(function(b){
+      var f=new File([b],name,{type:b.type});
+      if(navigator.canShare&&navigator.canShare({files:[f]})) return navigator.share({files:[f]});
+      return navigator.share({title:document.title,url:location.href});
+    }).catch(function(){});
+  };
+}
+})();
+</script>
+</body></html>"""
 
 /** Annuncia il telefono in rete locale (mDNS) così il tablet lo trova senza IP. */
 class NsdAdvertiser(context: Context) {

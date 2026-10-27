@@ -21,6 +21,10 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(59, "1.54", "Pagina ospiti come il tablet", listOf(
+            "Dediche: l'IP a mano usa sempre la porta giusta (8080), anche se scrivi una porta diversa: prima con :80 non si collegava e non eliminava nulla",
+            "La pagina che si apre dal QR agli ospiti ha ora lo stile del tablet (stessi colori, scheda e tasti)",
+        )),
         Entry(58, "1.53", "Dediche: codice del telefono camera", listOf(
             "Controllo: se sul telefono camera la protezione è accesa, la scheda Dediche ora usa il suo codice a 6 cifre (tasto IP e codice)",
             "Se il codice manca o è sbagliato lo dice chiaramente, invece di \"non risponde\"; ogni altro errore mostra il motivo",

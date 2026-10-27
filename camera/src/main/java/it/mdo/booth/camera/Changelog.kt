@@ -21,6 +21,9 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(59, "1.54", "Pagina ospiti come il tablet", listOf(
+            "La pagina del QR per gli ospiti ha ora lo stesso stile del tablet: scheda scura, tasto verde Scarica e tasto Condividi dove il telefono lo permette",
+        )),
         Entry(57, "1.52", "Collegamento a Drive più sicuro", listOf(
             "Collega Drive: ora scegli l'account Google una volta sola e l'app lo ricorda, anche se sul telefono hai più account",
             "Se il collegamento non riesce, la scheda mostra il motivo",
