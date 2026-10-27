@@ -59,7 +59,7 @@ fun wifiQrPayload(ssid: String, pass: String): String? {
 
 /** QR a tutto schermo: 1) collegati al Wi-Fi, 2) scarica il file. Tocca per chiudere. */
 @Composable
-fun QrOverlay(wifi: String?, videoUrl: String?, onClose: () -> Unit) {
+fun QrOverlay(wifi: String?, videoUrl: String?, remoteHint: Boolean = false, onClose: () -> Unit) {
     val wifiBmp = remember(wifi) { wifi?.let { makeQr(it, 640) } }
     val videoBmp = remember(videoUrl) { videoUrl?.let { makeQr(it, 640) } }
     Box(
@@ -80,7 +80,8 @@ fun QrOverlay(wifi: String?, videoUrl: String?, onClose: () -> Unit) {
             }
         }
         Text(
-            Lang.t("Tocca per chiudere", "Tap to close"), color = Color(0xB3FFFFFF), fontSize = 16.sp,
+            if (remoteHint) Lang.t("Tocca o premi 1 clic sul telecomando per tornare a pronto", "Tap or press the remote once to get back")
+            else Lang.t("Tocca per chiudere", "Tap to close"), color = Color(0xB3FFFFFF), fontSize = 16.sp,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp),
         )
     }

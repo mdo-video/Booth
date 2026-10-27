@@ -690,6 +690,13 @@ class DashcamService : Service() {
             val names = List(a.length()) { a.getString(it) }
             l.hidden = if ("*" in names) emptySet() else l.hidden - names.toSet()
         }
+        t.optJSONObject("remote")?.let { r ->
+            if (r.optBoolean("reset")) l.resetRemoteMap()
+            RemoteActions.gestures.forEach { g ->
+                val a = r.optString(g.name)
+                if (a.isNotEmpty() && RemoteActions.all.any { it.first == a }) l.setRemoteAction(g.name, a)
+            }
+        }
         if (t.has("kiosk")) {
             l.kiosk = t.getBoolean("kiosk")
             DashState.kioskHook?.invoke(l.kiosk)
@@ -767,6 +774,8 @@ class DashcamService : Service() {
             .put("wifiSsid", l.wifiSsid)
             .put("wifiPass", l.wifiPass)
             .put("kiosk", l.kiosk)
+            .put("remote", JSONObject().also { r -> RemoteActions.gestures.forEach { g -> r.put(g.name, l.remoteAction(g.name)) } })
+            .put("remotePaired", l.remoteDevice.isNotEmpty())
     }
 
     private fun registerNsd() {

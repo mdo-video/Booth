@@ -46,7 +46,9 @@ fun TakeCard(
     onSave: () -> Unit,
     onShare: () -> Unit,
     modifier: Modifier = Modifier,
+    remoteHints: Boolean = false,
 ) {
+    val hint = { n: Int -> if (remoteHints) "  ·  $n " + Lang.t("clic", if (n == 1) "click" else "clicks") else "" }
     Column(
         modifier.width(560.dp).clip(RoundedCornerShape(24.dp)).background(Color(0xF21C1D22)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -60,11 +62,11 @@ fun TakeCard(
             BigButton(Lang.t("Nuova", "New"), Color(0xFFFF2D55), onRedo)
             OutlineButton(Lang.t("Condividi", "Share"), Modifier.fillMaxWidth(), onShare)
         } else {
-            BigButton(Lang.t("Salva", "Save"), Color(0xFF2E7D32), onSave)
+            BigButton(Lang.t("Salva", "Save") + hint(1), Color(0xFF2E7D32), onSave)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlineButton(Lang.t("Rifai", "Retake"), Modifier.weight(1f), onRedo)
+                OutlineButton(Lang.t("Rifai", "Retake") + hint(2), Modifier.weight(1f), onRedo)
                 // Condividi salva (se serve) e mostra il QR: non si esce mai dal kiosk
-                OutlineButton(Lang.t("Condividi", "Share"), Modifier.weight(1f), onShare)
+                OutlineButton(Lang.t("Condividi", "Share") + hint(3), Modifier.weight(1f), onShare)
             }
         }
     }

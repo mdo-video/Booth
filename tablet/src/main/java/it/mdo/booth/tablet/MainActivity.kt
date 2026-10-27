@@ -41,6 +41,18 @@ class LocalSettings(private val prefs: SharedPreferences) {
     /** telecomando Bluetooth associato (descrittore del dispositivo di input + nome da mostrare) */
     var remoteDevice by mutableStateOf(prefs.getString("remoteDevice", "") ?: "")
     var remoteName by mutableStateOf(prefs.getString("remoteName", "") ?: "")
+    /** combinazioni di tasti del telecomando: "SINGLE=SHOOT,DOUBLE=MODE,..." (vuoto = predefinite) */
+    var remoteMap by mutableStateOf(prefs.getString("remoteMap", "") ?: "")
+    private fun parseRemoteMap(): Map<String, String> =
+        remoteMap.split(",").mapNotNull { val p = it.split("="); if (p.size == 2) p[0] to p[1] else null }.toMap()
+    fun remoteAction(gesture: String): String = parseRemoteMap()[gesture] ?: RemoteActions.defaults[gesture] ?: "NONE"
+    fun setRemoteAction(gesture: String, action: String) {
+        val m = RemoteActions.gestures.associate { it.name to remoteAction(it.name) }.toMutableMap()
+        m[gesture] = action
+        remoteMap = m.entries.joinToString(",") { "${it.key}=${it.value}" }
+        save()
+    }
+    fun resetRemoteMap() { remoteMap = ""; save() }
     /** bordo attorno all'anteprima: 0 = pieno schermo, 1 = sottile, 2 = largo (i tasti stanno nel bordo) */
     var borderMode by mutableIntStateOf(prefs.getInt("borderMode", 2))
     /** colore del bordo, ARGB */
@@ -76,6 +88,7 @@ class LocalSettings(private val prefs: SharedPreferences) {
             .putBoolean("frameDefaultDone", frameDefaultDone)
             .putString("remoteDevice", remoteDevice)
             .putString("remoteName", remoteName)
+            .putString("remoteMap", remoteMap)
             .putString("lang", lang)
             .putBoolean("filtersUi", filtersUi)
             .putString("customFilters", customFilters)

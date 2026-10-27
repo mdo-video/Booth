@@ -715,6 +715,35 @@ private fun SettingsTab(api: Api, upd: UpdateManager) {
                     Note("Sul tablet le impostazioni si aprono con pressione lunga sull'angolo in alto a destra e il PIN scelto sul tablet (o con il pulsante qui sopra).")
                 }
             }
+
+            // ---- telecomando Bluetooth: combinazioni dei tasti ----
+            if (tab != null && tab.has("remote")) {
+                Card("TELECOMANDO") {
+                    val rm = tab.optJSONObject("remote")
+                    Text(
+                        if (tab.optBoolean("remotePaired")) "Telecomando associato al tablet" else "Nessun telecomando associato (si associa dalle impostazioni del tablet)",
+                        color = Color.Gray, fontSize = 14.sp,
+                    )
+                    val actions = listOf(
+                        "SHOOT" to "Scatta / registra", "MODE" to "Foto ↔ Video", "LIGHT" to "Torcia / flash",
+                        "DURATION" to "Durata video", "VIDEO" to "Solo video", "PHOTO" to "Solo foto",
+                        "TORCH" to "Torcia", "FLASH" to "Flash foto", "NONE" to "Niente",
+                    )
+                    listOf("SINGLE" to "1 clic", "DOUBLE" to "2 clic", "TRIPLE" to "3 clic", "QUAD" to "4 clic", "LONG" to "Pressione lunga").forEach { (g, label) ->
+                        Sub(label)
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            val cur = rm?.optString(g) ?: ""
+                            actions.forEach { (id, name) ->
+                                Chip(name, cur == id) { sendTablet("remote", JSONObject().put(g, id)) }
+                            }
+                        }
+                    }
+                    Row {
+                        Chip("Ripristina predefinite", false) { sendTablet("remote", JSONObject().put("reset", true)) }
+                    }
+                    Note("Predefinite: 1 clic scatta/registra (foto o video secondo la modalità), 2 clic cambia foto/video, lunga = torcia (video) o flash (foto). Dopo lo scatto: 1 clic Salva, 2 clic Rifai, 3 clic Condividi. In registrazione qualsiasi clic = STOP.")
+                }
+            }
         } else {
             Card("TABLET") { Text("Nessuna risposta dal tablet: controlla il collegamento qui sotto.", color = Color.LightGray, fontSize = 16.sp) }
         }

@@ -183,6 +183,15 @@ fun BoothScreen(
         }
     }
     LaunchedEffect(hasTake) { if (!hasTake) pendingQr = false }
+    // chiuso il QR di una dedica salvata: "Nuova" parte da sola, niente schermata di conferma
+    var qrWasShown by remember { mutableStateOf(false) }
+    LaunchedEffect(qr) {
+        if (qr != null) qrWasShown = true
+        else if (qrWasShown) {
+            qrWasShown = false
+            if (takeSaved) client.send("DISCARD")
+        }
+    }
     LaunchedEffect(connected) {
         if (connected) while (true) { client.send("INFO?"); delay(30_000) }
     }
@@ -238,47 +247,63 @@ fun BoothScreen(
         }
     }
 
-    // telecomando Bluetooth a un tasto (singola / doppia / tripla / quadrupla / lunga)
+    // telecomando Bluetooth a un tasto: le combinazioni si programmano nelle impostazioni (tablet e Controllo)
+    var photoMode by remember { mutableStateOf(false) }
     val remoteHandler: (RemoteGesture) -> Unit = handler@{ g ->
         if (SplashStore.visible) { SplashStore.dismiss(); return@handler }
         if (showSettings || showPin || processing) return@handler
         fun ack() { if (local.sound) tone?.startTone(ToneGenerator.TONE_PROP_ACK, 120) }
-        // QR a schermo: qualsiasi pressione lo chiude
+        // QR a schermo: qualsiasi pressione lo chiude (poi si torna da soli a "pronto")
         if (qr != null) { qr = null; return@handler }
         // conto alla rovescia in corso: come il tocco sul tablet, non fa nulla
         if (starting || countdown > 0) return@handler
         // registrazione in corso: STOP
         if (recording) { client.send("STOP"); return@handler }
-        // anteprima del video/foto appena fatti
+        // dedica della pellicola aperta: un clic la chiude
+        if (viewing != null && !hasTake) { viewing = null; ack(); return@handler }
+        // anteprima dello scatto appena fatto: 1 clic Salva, 2 clic Rifai, 3 clic Condividi
         if (hasTake) {
-            if (takeSaved) {
-                if (g == RemoteGesture.SINGLE) { client.send("DISCARD"); ack() }            // Nuova
-                else if (g != RemoteGesture.DOUBLE && savedName != null && base != null) { // QR
-                    qr = QrRequest(guestLink(base, savedName, local.camKey)); ack()
-                }
-            } else {
-                if (g == RemoteGesture.SINGLE) { client.send("SAVE"); ack() }                // Salva
-                else if (g == RemoteGesture.DOUBLE) {                                       // Rifai
-                    EventLog.add("DEDICA_SCARTATA"); client.send("DISCARD"); ack()
-                } else { pendingQr = true; client.send("SAVE"); ack() }                      // Condividi (salva + QR)
+            if (takeSaved) { client.send("DISCARD"); return@handler }                         // già salvata: torna a pronto
+            when (g) {
+                RemoteGesture.SINGLE -> { client.send("SAVE"); ack() }                           // Salva
+                RemoteGesture.DOUBLE -> { EventLog.add("DEDICA_SCARTATA"); client.send("DISCARD"); ack() } // Rifai
+                else -> { EventLog.add("CONDIVISA"); pendingQr = true; client.send("SAVE"); ack() }        // Condividi (salva + QR)
             }
             return@handler
         }
         if (!connected) return@handler
         val i = info ?: return@handler
-        when (g) {
-            RemoteGesture.SINGLE -> { shotKind = "video"; starting = true }
-            RemoteGesture.DOUBLE -> if (i.optBoolean("hasPhoto")) { shotKind = "photo"; starting = true }
-            RemoteGesture.TRIPLE -> if (i.optBoolean("hasFlash")) {
-                val on = i.optBoolean("flash")
-                client.set(JSONObject().put("flash", !on))
-                banner = if (on) "Flash foto spento" else "Flash foto acceso"; ack()
+        val canPhoto = i.optBoolean("hasPhoto")
+        val isPhoto = photoMode && canPhoto
+        fun light(photo: Boolean) {
+            val key = if (photo) "flash" else "torch"
+            val has = if (photo) i.optBoolean("hasFlash") else i.optBoolean("hasTorch")
+            if (!has) { banner = if (photo) "Flash non disponibile" else "Torcia non disponibile"; return }
+            val on = i.optBoolean(key)
+            client.set(JSONObject().put(key, !on))
+            banner = if (photo) (if (on) "Flash foto spento" else "Flash foto acceso")
+            else (if (on) "Torcia spenta" else "Torcia accesa")
+            ack()
+        }
+        when (local.remoteAction(g.name)) {
+            "SHOOT" -> { shotKind = if (isPhoto) "photo" else "video"; starting = true }
+            "VIDEO" -> { shotKind = "video"; starting = true }
+            "PHOTO" -> if (canPhoto) { shotKind = "photo"; starting = true } else banner = "Foto non disponibile"
+            "MODE" -> if (canPhoto) {
+                photoMode = !isPhoto
+                banner = if (photoMode) "Modalità FOTO" else "Modalità VIDEO"; ack()
+            } else banner = "Foto non disponibile"
+            "LIGHT" -> light(isPhoto)
+            "TORCH" -> light(false)
+            "FLASH" -> light(true)
+            "DURATION" -> {
+                val opts = RemoteActions.durations
+                val cur = i.optInt("duration", 60)
+                val next = opts.firstOrNull { it > cur } ?: opts.first()
+                client.set(JSONObject().put("duration", next))
+                banner = "Durata massima: $next s"; ack()
             }
-            RemoteGesture.LONG, RemoteGesture.QUAD -> if (i.optBoolean("hasTorch")) {
-                val on = i.optBoolean("torch")
-                client.set(JSONObject().put("torch", !on))
-                banner = if (on) "Torcia spenta" else "Torcia accesa"; ack()
-            }
+            else -> Unit
         }
     }
     val onRemote by rememberUpdatedState(remoteHandler)
@@ -289,7 +314,6 @@ fun BoothScreen(
     val wide = local.borderMode == 2            // bordo largo: i tasti stanno fuori dall'immagine
     val zoneTop = if (wide) 104.dp else 96.dp
     val zoneBottom = if (wide) 176.dp else 96.dp
-    var photoMode by remember { mutableStateOf(false) }
     var filterToast by remember { mutableStateOf<String?>(null) }
     val shownFilter = FilterState.override ?: (info?.optString("filter", "none") ?: "none")
     val shownFilterState by rememberUpdatedState(shownFilter)
@@ -453,29 +477,26 @@ fun BoothScreen(
         // legenda del telecomando (vale per tutti i layout)
         if (!recording && !starting && !processing && countdown == 0) {
             if (showLegend && local.remoteDevice.isNotEmpty()) {
+                val legendCanPhoto = info?.optBoolean("hasPhoto") == true
+                val legendIsPhoto = photoMode && legendCanPhoto
                 val legendLines = buildList {
                     if (hasTake) {
-                        if (takeSaved) {
-                            add("1 pressione" to "Nuova")
-                            add("Lunga · 3 · 4" to "Condividi")
-                        } else {
-                            add("1 pressione" to "Salva")
-                            add("2 pressioni" to "Rifai")
-                            add("Lunga · 3 · 4" to "Condividi")
-                        }
+                        add("1 clic" to "Salva")
+                        add("2 clic" to "Rifai")
+                        add("3 clic" to "Condividi")
                     } else {
-                        add("1 pressione" to "REC video")
-                        if (info?.optBoolean("hasPhoto") == true) add("2 pressioni" to "FOTO")
-                        if (info?.optBoolean("hasFlash") == true) add("3 pressioni" to "Flash foto")
-                        if (info?.optBoolean("hasTorch") == true) add("Lunga · 4 pressioni" to "Torcia")
+                        RemoteActions.gestures.forEach { g ->
+                            RemoteActions.legend(local.remoteAction(g.name), legendIsPhoto, legendCanPhoto)
+                                ?.let { add(RemoteActions.gestureLabel(g) to it) }
+                        }
                     }
                 }
                 Column(
                     // a sinistra della colonna di tasti (96dp + 24dp di margine + 16dp di respiro) per non coprirli
-                    Modifier.align(Alignment.TopEnd).padding(top = 90.dp, end = 136.dp)
+                    Modifier.align(Alignment.TopEnd).padding(top = 90.dp, end = 136.dp).zIndex(5f)
                         .widthIn(min = 360.dp, max = 460.dp)
                         .clip(RoundedCornerShape(28.dp))
-                        .background(Color(0xF21D1026))
+                        .background(Color(0xFF1D1026))
                         .border(2.dp, Color(0x66FF2BFF), RoundedCornerShape(28.dp))
                         .padding(22.dp),
                     verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
@@ -513,9 +534,11 @@ fun BoothScreen(
                             )
                         }
                     }
-                    if (!hasTake) {
-                        Text("REC: STOP", color = Color(0xFFC9A4E6), fontSize = 13.sp)
-                    }
+                    Text(
+                        if (hasTake) "Dopo il salvataggio si torna da soli a Pronto"
+                        else "Durante la registrazione: qualsiasi clic = STOP",
+                        color = Color(0xFFC9A4E6), fontSize = 13.sp,
+                    )
                 }
             }
         }
@@ -578,12 +601,12 @@ fun BoothScreen(
             DurationPicker(
                 current = pickInfo.optInt("duration", 60),
                 onPick = { client.set(JSONObject().put("duration", it)) },
-                modifier = Modifier.align(Alignment.BottomEnd).padding(end = if (wide) 96.dp else 24.dp, bottom = 24.dp),
+                modifier = Modifier.align(Alignment.BottomEnd).padding(end = if (wide) 96.dp else 24.dp, bottom = 46.dp),
             )
         }
 
         // anteprima del video appena registrato
-        if (hasTake && base != null) {
+        if (hasTake && !takeSaved && base != null) {
             TakeCard(
                 client = client,
                 path = "/take/$takeFile",
@@ -599,6 +622,7 @@ fun BoothScreen(
                     else { pendingQr = true; client.send("SAVE") }
                 },
                 modifier = Modifier.align(Alignment.Center).padding(bottom = 32.dp),
+                remoteHints = remoteConnected,
             )
         }
 
@@ -711,6 +735,6 @@ fun BoothScreen(
         }
 
         SplashOverlay()
-        qr?.let { r -> QrOverlay(wifiQrPayload(local.wifiSsid, local.wifiPass), r.videoUrl) { qr = null } }
+        qr?.let { r -> QrOverlay(wifiQrPayload(local.wifiSsid, local.wifiPass), r.videoUrl, remoteHint = remoteConnected) { qr = null } }
     }
 }

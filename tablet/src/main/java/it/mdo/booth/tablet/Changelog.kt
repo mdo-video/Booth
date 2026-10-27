@@ -21,6 +21,14 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(66, "1.61", "Telecomando programmabile", listOf(
+            "Telecomando: 1 clic = scatta o registra secondo la modalità scelta (foto o video), 2 clic = passa da foto a video e viceversa, pressione lunga = torcia in video / flash in foto",
+            "Combinazioni programmabili: da Impostazioni → Telecomando (tablet) e dall'app Controllo puoi assegnare a 1, 2, 3, 4 clic e pressione lunga: scatta, foto↔video, torcia/flash, durata video e altro",
+            "Dopo lo scatto con il telecomando collegato i tasti mostrano i clic: Salva (1), Rifai (2), Condividi (3)",
+            "Chiuso il QR, o salvata la dedica, si torna da soli a Pronto: tolta la schermata di conferma con Nuova/Condividi",
+            "Legenda del telecomando sopra al volume del microfono e sempre leggibile; ora mostra le combinazioni scelte",
+            "Il selettore della durata del video è allineato ai tasti REC e luce",
+        )),
         Entry(65, "1.60", "Avvisi sempre leggibili", listOf(
             "Gli avvisi in alto (telecomando collegato/scollegato, flash, torcia) ora stanno sopra a tutto, anche sopra il messaggio di benvenuto, con sfondo pieno, bordo spesso e scritta più grande",
         )),

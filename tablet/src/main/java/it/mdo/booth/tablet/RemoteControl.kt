@@ -128,3 +128,47 @@ object RemoteInput {
         return true
     }
 }
+
+/** Azioni che si possono assegnare a una combinazione di tasti del telecomando. */
+object RemoteActions {
+    /** id, nome breve (per i tasti di scelta) */
+    val all = listOf(
+        "SHOOT" to "Scatta / registra",
+        "MODE" to "Foto ↔ Video",
+        "LIGHT" to "Torcia / flash",
+        "DURATION" to "Durata video",
+        "VIDEO" to "Solo video",
+        "PHOTO" to "Solo foto",
+        "TORCH" to "Torcia",
+        "FLASH" to "Flash foto",
+        "NONE" to "Niente",
+    )
+    val gestures = listOf(
+        RemoteGesture.SINGLE, RemoteGesture.DOUBLE, RemoteGesture.TRIPLE, RemoteGesture.QUAD, RemoteGesture.LONG,
+    )
+    val defaults = mapOf(
+        "SINGLE" to "SHOOT", "DOUBLE" to "MODE", "LONG" to "LIGHT", "TRIPLE" to "NONE", "QUAD" to "NONE",
+    )
+    val durations = listOf(30, 60, 90, 120)
+
+    fun gestureLabel(g: RemoteGesture) = when (g) {
+        RemoteGesture.SINGLE -> "1 clic"
+        RemoteGesture.DOUBLE -> "2 clic"
+        RemoteGesture.TRIPLE -> "3 clic"
+        RemoteGesture.QUAD -> "4 clic"
+        RemoteGesture.LONG -> "Pressione lunga"
+    }
+
+    /** Testo per la legenda, secondo la modalità attuale (null = nessuna azione). */
+    fun legend(action: String, isPhoto: Boolean, canPhoto: Boolean): String? = when (action) {
+        "SHOOT" -> if (isPhoto) "Scatta foto" else "Registra video"
+        "MODE" -> if (!canPhoto) null else if (isPhoto) "Passa a VIDEO" else "Passa a FOTO"
+        "LIGHT" -> if (isPhoto) "Flash foto" else "Torcia"
+        "DURATION" -> "Durata video"
+        "VIDEO" -> "Registra video"
+        "PHOTO" -> "Scatta foto"
+        "TORCH" -> "Torcia"
+        "FLASH" -> "Flash foto"
+        else -> null
+    }
+}

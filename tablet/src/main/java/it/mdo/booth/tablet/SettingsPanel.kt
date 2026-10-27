@@ -488,10 +488,27 @@ private fun RemoteSettings(local: LocalSettings) {
         }
     }
     Text(
-        "Abbina prima il telecomando dalle impostazioni Bluetooth di Android, poi premi Associa e il suo tasto.\n" +
-            "Pronto: singola = REC, doppia = FOTO, tripla = flash foto, lunga o quadrupla = torcia.\n" +
-            "Conto alla rovescia: qualsiasi pressione annulla. Registrazione: qualsiasi pressione = STOP.\n" +
-            "Anteprima: singola = Salva (o Nuova), doppia = Rifai, lunga = QR.",
+        "Abbina prima il telecomando dalle impostazioni Bluetooth di Android, poi premi Associa e il suo tasto.",
+        color = Color.Gray, fontSize = 13.sp,
+    )
+    Section("COMBINAZIONI DEI TASTI (quando è tutto pronto)")
+    RemoteActions.gestures.forEach { g ->
+        Label(RemoteActions.gestureLabel(g))
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val cur = local.remoteAction(g.name)
+            RemoteActions.all.forEach { (id, name) ->
+                Chip(name, cur == id) { local.setRemoteAction(g.name, id) }
+            }
+        }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Chip("Ripristina predefinite", false) { local.resetRemoteMap() }
+    }
+    Text(
+        "Predefinite: 1 clic = scatta/registra (foto o video, secondo la modalità), 2 clic = cambia foto/video, " +
+            "pressione lunga = torcia (video) o flash (foto).\n" +
+            "Durante la registrazione qualsiasi clic = STOP. Dopo lo scatto: 1 clic = Salva, 2 clic = Rifai, 3 clic = Condividi. " +
+            "QR a schermo: 1 clic torna a pronto.",
         color = Color.Gray, fontSize = 13.sp,
     )
     if (lines.isNotEmpty()) {
