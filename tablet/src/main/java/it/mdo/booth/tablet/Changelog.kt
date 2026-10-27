@@ -21,6 +21,9 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(65, "1.60", "Avvisi sempre leggibili", listOf(
+            "Gli avvisi in alto (telecomando collegato/scollegato, flash, torcia) ora stanno sopra a tutto, anche sopra il messaggio di benvenuto, con sfondo pieno, bordo spesso e scritta più grande",
+        )),
         Entry(64, "1.59", "Messaggio di benvenuto che non copre più nulla", listOf(
             "Il messaggio di benvenuto sta su una riga tra l'anteprima e i tasti in alto a destra; se è lungo si rimpicciolisce da solo invece di coprire la scritta degli effetti e i tasti",
             "Con gli altri bordi, un messaggio molto lungo va a capo senza uscire dallo schermo",

@@ -49,6 +49,7 @@ import androidx.compose.ui.platform.LocalContext
 import android.graphics.BitmapFactory
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
@@ -363,29 +364,30 @@ fun BoothScreen(
             visible = remoteToast,
             enter = androidx.compose.animation.slideInVertically { -it } + androidx.compose.animation.fadeIn(),
             exit = androidx.compose.animation.slideOutVertically { -it } + androidx.compose.animation.fadeOut(),
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = 20.dp),
+            modifier = Modifier.align(Alignment.TopCenter).padding(top = 20.dp).zIndex(10f),
         ) {
-            val tone = if (remoteToastOn) Color(0xFF43A047) else Color(0xFFE53935)
+            val tone = if (remoteToastOn) Color(0xFF2E7D32) else Color(0xFFC62828)
             Row(
-                Modifier.clip(RoundedCornerShape(28.dp)).background(Color(0xF21D1026))
-                    .border(2.dp, tone, RoundedCornerShape(28.dp))
-                    .padding(horizontal = 26.dp, vertical = 12.dp),
+                Modifier.clip(RoundedCornerShape(32.dp)).background(Color(0xFF14101A))
+                    .border(4.dp, tone, RoundedCornerShape(32.dp))
+                    .padding(horizontal = 32.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
             ) {
-                Box(Modifier.size(14.dp).clip(CircleShape).background(tone))
+                Box(Modifier.size(20.dp).clip(CircleShape).background(if (remoteToastOn) Color(0xFF66BB6A) else Color(0xFFFF5252)))
                 Text(
                     if (remoteToastOn) Lang.t("Telecomando collegato", "Remote connected")
                     else Lang.t("Telecomando scollegato", "Remote disconnected"),
-                    color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold,
+                    color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold,
                 )
             }
         }
         banner?.let {
-            Text(it, color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.align(Alignment.TopCenter).padding(top = 20.dp)
-                    .clip(RoundedCornerShape(28.dp)).background(Color(0xCC1B5E20))
-                    .padding(horizontal = 28.dp, vertical = 10.dp))
+            Text(it, color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 20.dp).zIndex(10f)
+                    .clip(RoundedCornerShape(32.dp)).background(Color(0xFF1B5E20))
+                    .border(3.dp, Color(0xFF66BB6A), RoundedCornerShape(32.dp))
+                    .padding(horizontal = 32.dp, vertical = 14.dp))
         }
 
         // in alto a destra: telecomando e Wi-Fi/QR
