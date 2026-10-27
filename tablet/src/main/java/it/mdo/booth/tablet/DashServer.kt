@@ -132,6 +132,19 @@ class DashServer(
                     DashState.unlockAt.value = System.currentTimeMillis()
                     call.respondText("OK")
                 }
+                post("/remote") {
+                    // replica del telecomando nell'app Controllo: il gesto (SINGLE, DOUBLE, TRIPLE, QUAD, LONG) arriva
+                    // come se l'avesse fatto il telecomando fisico
+                    if (!call.authed()) return@post
+                    val g = runCatching { RemoteGesture.valueOf(call.request.queryParameters["g"].orEmpty()) }.getOrNull()
+                    if (g == null) {
+                        call.respondText("ERR")
+                    } else {
+                        RemoteLog.add("da Controllo → ${g.label}")
+                        RemoteBus.gestures.tryEmit(g)
+                        call.respondText("OK")
+                    }
+                }
                 post("/update/check") {
                     if (!call.authed()) return@post
                     DashState.updates?.check()

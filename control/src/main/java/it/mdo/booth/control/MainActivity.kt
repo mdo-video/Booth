@@ -246,7 +246,7 @@ fun ControlApp(api: Api, upd: UpdateManager) {
             Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            listOf("Stato", "Dediche", "Diretta booth", "Diretta dashcam", "Video", "Log", "Impost.").forEachIndexed { i, t -> Chip(t, tab == i) { tab = i } }
+            listOf("Stato", "Dediche", "Diretta booth", "Diretta dashcam", "Video", "Log", "Telecomando", "Impost.").forEachIndexed { i, t -> Chip(t, tab == i) { tab = i } }
         }
         Box(Modifier.weight(1f).padding(horizontal = 12.dp)) {
             when (tab) {
@@ -256,6 +256,7 @@ fun ControlApp(api: Api, upd: UpdateManager) {
                 3 -> LiveTab(api, booth = false)
                 4 -> ClipsTab(api)
                 5 -> LogTab(api)
+                6 -> RemoteTab(api)
                 else -> SettingsTab(api, upd)
             }
         }

@@ -129,3 +129,10 @@ Notifica quando esce una nuova versione (tablet, camera, controllo); controllo a
   (`SCREEN_ORIENTATION_FULL_SENSOR`). Se lo schermo ruota e non si sta registrando, la camera si riaggancia dopo ~0,7 s; se ruota durante un video
   si riaggancia a fine registrazione. Nelle info il telefono manda `orientation` (landscape | portrait | auto) e `orientationNow` (com'è adesso).
 - **Ultime in verticale**: con l'anteprima stretta la colonna diventa una griglia fino a 3 colonne (`columns` in `HistoryStrip`), calcolate dallo spazio libero a sinistra.
+
+## Novità 1.63 — telecomando nell'app Controllo
+- **Scheda Telecomando** (app Controllo): replica del telecomando Bluetooth a un tasto, disegnata con lo stesso tasto bianco "CAMERA".
+  Riconosce 1, 2, 3, 4 clic e pressione lunga con gli stessi tempi del tablet (`GAP_MS` 300, `LONG_MS` 700) e manda il gesto con `POST /remote?g=SINGLE|DOUBLE|TRIPLE|QUAD|LONG`.
+- **Tablet**: `DashServer` inoltra il gesto a `RemoteBus` come se arrivasse dal telecomando fisico: stesse azioni assegnate in Impostazioni → TELECOMANDO,
+  stesso comportamento in registrazione, dopo lo scatto (Salva / Rifai / Condividi), con QR o splash aperti. Serve il codice a 6 cifre come per le altre chiamate.
+- Sotto il telecomando la scheda mostra l'azione assegnata a ogni gesto (letta dallo stato del tablet) ed evidenzia l'ultimo gesto inviato.

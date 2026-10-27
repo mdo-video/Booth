@@ -101,6 +101,17 @@ class Api(ctx: Context) {
         }
     }
 
+    /** Manda al tablet un gesto del telecomando (SINGLE, DOUBLE, TRIPLE, QUAD, LONG); true se il tablet l'ha ricevuto. */
+    suspend fun remote(gesture: String): Boolean = withContext(Dispatchers.IO) {
+        val b = base ?: return@withContext false
+        runCatching {
+            http.newCall(
+                Request.Builder().url("$b/remote?g=$gesture&k=$key")
+                    .post("".toRequestBody("text/plain".toMediaType())).build()
+            ).execute().use { it.isSuccessful && it.body?.string() == "OK" }
+        }.getOrDefault(false)
+    }
+
     /** Invia un file grezzo al tablet (es. l'immagine della splash). */
     suspend fun postBytes(path: String, bytes: ByteArray): Boolean = withContext(Dispatchers.IO) {
         val b = base ?: return@withContext false

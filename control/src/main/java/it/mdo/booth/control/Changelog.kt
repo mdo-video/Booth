@@ -21,6 +21,11 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(68, "1.63", "Telecomando nell'app Controllo", listOf(
+            "Nuova scheda Telecomando: la replica del telecomando a un tasto, con lo stesso tasto bianco",
+            "Funziona come quello vero: 1, 2, 3, 4 clic e pressione lunga (stessi tempi); il tablet esegue l'azione assegnata a quel gesto",
+            "Sotto il telecomando vedi cosa fa ogni gesto, come impostato in Impost. → TELECOMANDO",
+        )),
         Entry(67, "1.62", "Anteprime verticali e orientamento automatico", listOf(
             "Orientamento video: nuovo tasto Automatico, indica anche se il telefono camera è ora in verticale o in orizzontale",
         )),

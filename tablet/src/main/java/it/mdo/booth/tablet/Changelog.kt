@@ -21,6 +21,9 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(68, "1.63", "Telecomando dall'app Controllo", listOf(
+            "Il tablet accetta i gesti del telecomando anche dall'app Controllo (nuova scheda Telecomando): stesse azioni del telecomando fisico",
+        )),
         Entry(67, "1.62", "Anteprime verticali e orientamento automatico", listOf(
             "Anteprime che rispettano il formato: video e foto orizzontali restano orizzontali, quelli verticali restano verticali, anche mischiati nella stessa colonna",
             "Ultime dediche ridisegnate: miniature con angoli morbidi e ombra, numero e ora in basso, ▶ per i video e fotocamera per le foto; la dedica aperta ha il contorno oro e fucsia",
