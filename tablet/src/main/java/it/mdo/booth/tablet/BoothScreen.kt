@@ -615,21 +615,35 @@ fun BoothScreen(
         if (connected && state == "READY" && !starting && countdown == 0 && !hasTake && viewing == null &&
             local.welcome.isNotBlank()
         ) {
-            Text(
-                if (Lang.en && local.welcome == "Lascia una dedica!") "Leave us a message!" else local.welcome,
-                color = if (wide) onBorder else Color.White,
-                fontSize = if (wide) 28.sp else 30.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = if (wide) TextAlign.Start else TextAlign.Center,
-                modifier = if (wide) {
-                    // titolo in alto a sinistra, allineato all'anteprima
-                    Modifier.align(Alignment.TopStart).padding(top = 40.dp, start = 168.dp)
-                } else {
-                    Modifier.align(Alignment.BottomCenter).padding(bottom = 240.dp)
+            val welcomeText = if (Lang.en && local.welcome == "Lascia una dedica!") "Leave us a message!" else local.welcome
+            if (wide) {
+                // titolo in alto a sinistra, allineato all'anteprima. Una riga sola: se è lunga si rimpicciolisce
+                // (fino a 14 sp) per stare tra l'anteprima e i tasti in alto a destra, senza coprire scritta effetti e tasti.
+                var fit by remember(welcomeText) { mutableStateOf(28f) }
+                Text(
+                    welcomeText,
+                    color = onBorder,
+                    fontSize = fit.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Start,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    onTextLayout = { if (it.didOverflowWidth && fit > 14f) fit = (fit - 1f).coerceAtLeast(14f) },
+                    modifier = Modifier.align(Alignment.TopStart).fillMaxWidth().padding(top = 16.dp, start = 168.dp, end = 290.dp),
+                )
+            } else {
+                Text(
+                    welcomeText,
+                    color = Color.White,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 240.dp, start = 24.dp, end = 24.dp)
                         .clip(RoundedCornerShape(24.dp)).background(Color(0x99000000))
-                        .padding(horizontal = 28.dp, vertical = 14.dp)
-                },
-            )
+                        .padding(horizontal = 28.dp, vertical = 14.dp),
+                )
+            }
         }
 
         // volume del microfono (modalità video): bordo destro, alla stessa altezza della pellicola

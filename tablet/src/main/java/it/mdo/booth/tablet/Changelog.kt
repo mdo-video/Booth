@@ -21,6 +21,10 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(64, "1.59", "Messaggio di benvenuto che non copre più nulla", listOf(
+            "Il messaggio di benvenuto sta su una riga tra l'anteprima e i tasti in alto a destra; se è lungo si rimpicciolisce da solo invece di coprire la scritta degli effetti e i tasti",
+            "Con gli altri bordi, un messaggio molto lungo va a capo senza uscire dallo schermo",
+        )),
         Entry(63, "1.58", "Bordo in mezzo tra scritta e puntini", listOf(
             "Effetti: la scritta \"Scorri per gli effetti\" sta sopra il bordo bianco del fotogramma e i puntini sotto, a pari distanza: il bordo è esattamente nel mezzo",
         )),
