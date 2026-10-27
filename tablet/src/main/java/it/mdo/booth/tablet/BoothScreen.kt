@@ -335,7 +335,7 @@ fun BoothScreen(
                 Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(top = frameTop),
                 contentAlignment = Alignment.TopCenter,
             ) {
-                FilterHint(shownFilter, onEdge = frameTop > 0.dp)
+                FilterHint(shownFilter, onEdge = frameTop >= 44.dp)
             }
         }
         filterToast?.let { FilterToast(it, Modifier.align(Alignment.Center)) }

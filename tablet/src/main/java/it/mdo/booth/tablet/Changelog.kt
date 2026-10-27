@@ -21,6 +21,12 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(63, "1.58", "Bordo in mezzo tra scritta e puntini", listOf(
+            "Effetti: la scritta \"Scorri per gli effetti\" sta sopra il bordo bianco del fotogramma e i puntini sotto, a pari distanza: il bordo è esattamente nel mezzo",
+        )),
+        Entry(62, "1.57", "Scritta effetti più leggibile", listOf(
+            "La scritta \"Scorri per gli effetti\" sul bordo ha lo sfondo scuro pieno: il bordo del fotogramma non la attraversa più",
+        )),
         Entry(61, "1.56", "Splash con scritta tradotta", listOf(
             "Splash: sotto l'immagine compare \"Tocca per iniziare\" come testo, quindi cambia con la lingua dell'app (Tap to start in inglese)",
             "L'immagine della splash non deve più contenere la scritta",

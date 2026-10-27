@@ -18,6 +18,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -91,29 +92,21 @@ fun TopPills(
 }
 
 /**
- * Sul bordo superiore dell'anteprima: la scritta "scorri" è a cavallo del bordo del fotogramma e i puntini degli effetti
- * stanno subito sotto, dentro il fotogramma. Senza bordo (anteprima a schermo intero) tutto resta dentro, in alto.
+ * Sul bordo superiore dell'anteprima. Con il bordo largo: la scritta "scorri" sta sopra il bordo bianco del fotogramma e i
+ * puntini sotto, alla stessa distanza, così il bordo è esattamente nel mezzo. Senza spazio sopra (bordo stretto o assente)
+ * scritta e puntini restano dentro il fotogramma, in alto.
+ * [onEdge] = il punto (0,0) di questo componente è sul bordo superiore del fotogramma e sopra c'è posto per la scritta.
  */
 @Composable
 fun FilterHint(current: String, onEdge: Boolean = false, modifier: Modifier = Modifier) {
     val ids = Filters.shown.map { it.id }
     val idx = ids.indexOf(current).coerceAtLeast(0)
-    Column(
-        modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            Lang.t("‹ Scorri per gli effetti ›", "‹ Swipe for effects ›"),
-            color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.offset(y = if (onEdge) (-16).dp else 8.dp)
-                .clip(RoundedCornerShape(50)).background(Color(0xB3000000))
-                .padding(horizontal = 14.dp, vertical = 6.dp),
-        )
-        Row(
-            Modifier.offset(y = if (onEdge) (-6).dp else 14.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+    val label = Lang.t("‹ Scorri per gli effetti ›", "‹ Swipe for effects ›")
+    val labelMod = Modifier.clip(RoundedCornerShape(50))
+        .background(if (onEdge) Color(0xF2000000) else Color(0xB3000000))
+        .padding(horizontal = 14.dp, vertical = 6.dp)
+    val dots: @Composable (Modifier) -> Unit = { m ->
+        Row(m.height(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             for (i in ids.indices) {
                 val sel = i == idx
                 Box(
@@ -123,7 +116,30 @@ fun FilterHint(current: String, onEdge: Boolean = false, modifier: Modifier = Mo
             }
         }
     }
+    if (onEdge) {
+        // ancora alta 0 sul bordo: la scritta cresce verso l'alto, i puntini verso il basso
+        Box(modifier.fillMaxWidth().height(0.dp), contentAlignment = Alignment.TopCenter) {
+            Text(
+                label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.wrapContentHeight(Alignment.Bottom, unbounded = true)
+                    .offset(y = (-HINT_GAP).dp).then(labelMod),
+            )
+            dots(Modifier.wrapContentHeight(Alignment.Top, unbounded = true).offset(y = (HINT_BORDER + HINT_GAP).dp))
+        }
+    } else {
+        Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                label, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.offset(y = 8.dp).then(labelMod),
+            )
+            dots(Modifier.offset(y = 14.dp))
+        }
+    }
 }
+
+/** distanza (dp) tra scritta e bordo e tra bordo e puntini; spessore indicativo del bordo bianco */
+private const val HINT_GAP = 10
+private const val HINT_BORDER = 4.5
 
 /** Nome dell'effetto appena scelto, al centro dell'anteprima per un attimo. */
 @Composable
