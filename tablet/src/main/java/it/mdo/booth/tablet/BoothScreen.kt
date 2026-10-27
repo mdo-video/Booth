@@ -329,12 +329,13 @@ fun BoothScreen(
                         )
                     },
             )
-            // sul bordo superiore: solo i puntini degli effetti
+            // sul bordo superiore del fotogramma: scritta "scorri" a cavallo del bordo, puntini sotto
+            val frameTop = previewPadding(local.borderMode).calculateTopPadding()
             Box(
-                Modifier.align(Alignment.TopCenter).fillMaxWidth().height(if (wide) 104.dp else 56.dp).padding(bottom = 10.dp),
-                contentAlignment = Alignment.BottomCenter,
+                Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(top = frameTop),
+                contentAlignment = Alignment.TopCenter,
             ) {
-                FilterHint(shownFilter)
+                FilterHint(shownFilter, onEdge = frameTop > 0.dp)
             }
         }
         filterToast?.let { FilterToast(it, Modifier.align(Alignment.Center)) }

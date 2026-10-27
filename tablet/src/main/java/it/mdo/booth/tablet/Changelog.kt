@@ -21,6 +21,13 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(61, "1.56", "Splash con scritta tradotta", listOf(
+            "Splash: sotto l'immagine compare \"Tocca per iniziare\" come testo, quindi cambia con la lingua dell'app (Tap to start in inglese)",
+            "L'immagine della splash non deve più contenere la scritta",
+        )),
+        Entry(60, "1.55", "Scritta effetti sul bordo", listOf(
+            "La scritta \"Scorri per gli effetti\" ora sta a cavallo del bordo del fotogramma e i puntini degli effetti subito sotto, dentro l'anteprima",
+        )),
         Entry(56, "1.51", "Filtri AR sul volto", listOf(
             "Tablet: nella fila degli effetti trovi anche i filtri AR",
             "Nuovi filtri AR: Corona, Occhiali, Baffi, Coniglietto e Cuori. Seguono il volto (anche inclinato) e funzionano con più persone",

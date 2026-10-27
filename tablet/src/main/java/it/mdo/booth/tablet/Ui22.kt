@@ -17,6 +17,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -89,23 +90,30 @@ fun TopPills(
     }
 }
 
-/** Sul bordo superiore: i puntini degli effetti. La scritta "scorri" resta sempre visibile. */
+/**
+ * Sul bordo superiore dell'anteprima: la scritta "scorri" è a cavallo del bordo del fotogramma e i puntini degli effetti
+ * stanno subito sotto, dentro il fotogramma. Senza bordo (anteprima a schermo intero) tutto resta dentro, in alto.
+ */
 @Composable
-fun FilterHint(current: String, modifier: Modifier = Modifier) {
+fun FilterHint(current: String, onEdge: Boolean = false, modifier: Modifier = Modifier) {
     val ids = Filters.shown.map { it.id }
     val idx = ids.indexOf(current).coerceAtLeast(0)
     Column(
         modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
             Lang.t("‹ Scorri per gli effetti ›", "‹ Swipe for effects ›"),
             color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.clip(RoundedCornerShape(50)).background(Color(0xB3000000))
+            modifier = Modifier.offset(y = if (onEdge) (-16).dp else 8.dp)
+                .clip(RoundedCornerShape(50)).background(Color(0xB3000000))
                 .padding(horizontal = 14.dp, vertical = 6.dp),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.offset(y = if (onEdge) (-6).dp else 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             for (i in ids.indices) {
                 val sel = i == idx
                 Box(

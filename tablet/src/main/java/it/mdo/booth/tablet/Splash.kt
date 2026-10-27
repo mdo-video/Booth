@@ -10,6 +10,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -110,6 +117,16 @@ fun SplashOverlay() {
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Fit,
+        )
+        // la scritta è testo (non fa parte del PNG): cambia lingua insieme all'app
+        Text(
+            Lang.t("Tocca per iniziare", "Tap to start").uppercase(),
+            color = Color(0xBFFFFFFF),
+            fontFamily = Poppins,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Medium,
+            letterSpacing = 0.28.em,
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 64.dp),
         )
     }
 }
