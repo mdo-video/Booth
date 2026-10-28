@@ -136,3 +136,11 @@ Notifica quando esce una nuova versione (tablet, camera, controllo); controllo a
 - **Tablet**: `DashServer` inoltra il gesto a `RemoteBus` come se arrivasse dal telecomando fisico: stesse azioni assegnate in Impostazioni → TELECOMANDO,
   stesso comportamento in registrazione, dopo lo scatto (Salva / Rifai / Condividi), con QR o splash aperti. Serve il codice a 6 cifre come per le altre chiamate.
 - Sotto il telecomando la scheda mostra l'azione assegnata a ogni gesto (letta dallo stato del tablet) ed evidenzia l'ultimo gesto inviato.
+
+## Novità 1.64 — galleria web per gli ospiti
+
+Cartella `galleria/` = il sito su Cloudflare (Worker `mdo-booth` + spazio R2 `booth-media`).
+- La pagina `?e=<evento>` mostra foto e video dell'evento e si aggiorna da sola.
+- Il telefono camera carica ogni dedica salvata (scheda **GALLERIA WEB**): file + miniatura in R2, poi la voce in `manifest.json`.
+- Le chiamate di scrittura (`/api/*`) vogliono la chiave segreta `UPLOAD_TOKEN` impostata sul Worker; la stessa chiave si scrive nell'app camera.
+- Evento = parte del nome file prima dell'ultimo `_`; resta online 90 giorni (data scritta nell'elenco).

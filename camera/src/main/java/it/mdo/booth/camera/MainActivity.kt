@@ -8,6 +8,7 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.InputType
 import android.util.TypedValue
 import android.view.GestureDetector
 import android.view.Gravity
@@ -19,6 +20,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import android.view.WindowManager
 import android.widget.Button
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -77,6 +79,15 @@ class MainActivity : AppCompatActivity() {
     private val driveClient by lazy { DriveClient(this) }
     private var drive: DriveUploader? = null
     private var driveMsg = ""
+    private lateinit var galText: TextView
+    private lateinit var galSetBtn: Button
+    private lateinit var galAutoBtn: Button
+    private lateinit var galWifiBtn: Button
+    private lateinit var galNowBtn: Button
+    private lateinit var galCopyBtn: Button
+    private val galClient by lazy { GalleryClient(this) }
+    private var gal: GalleryUploader? = null
+    private var galMsg = ""
 
     // stato mostrato
     private var curState = "READY"
@@ -109,6 +120,7 @@ class MainActivity : AppCompatActivity() {
         override fun run() {
             render()
             renderDrive()
+            renderGallery()
             ui.postDelayed(this, 1000)
         }
     }
@@ -285,6 +297,38 @@ class MainActivity : AppCompatActivity() {
         right.addView(driveCard, lp(match, wrap, top = 12))
         renderDrive()
 
+        // scheda GALLERIA WEB
+        val galCard = card("GALLERIA WEB")
+        galText = tv("", 14f, cSub)
+        galCard.addView(galText, lp(match, wrap, top = 8))
+        galSetBtn = chipBtn("Imposta indirizzo e chiave", cBlue).apply { setOnClickListener { onGallerySet() } }
+        galCard.addView(galSetBtn, lp(match, wrap, top = 10))
+        galAutoBtn = chipBtn("", cChip).apply {
+            setOnClickListener { gal?.let { it.auto = !it.auto }; renderGallery() }
+        }
+        galCard.addView(galAutoBtn, lp(match, wrap, top = 8))
+        galWifiBtn = chipBtn("", cChip).apply {
+            setOnClickListener { gal?.let { it.wifiOnly = !it.wifiOnly }; renderGallery() }
+        }
+        galCard.addView(galWifiBtn, lp(match, wrap, top = 8))
+        galNowBtn = chipBtn("Carica ora quelle non ancora caricate", cChip).apply {
+            setOnClickListener { gal?.enqueue(camera?.historyNames().orEmpty()) }
+        }
+        galCard.addView(galNowBtn, lp(match, wrap, top = 8))
+        galCopyBtn = chipBtn("Copia il link della galleria", cChip).apply {
+            setOnClickListener {
+                val link = galClient.lastLink
+                if (link.isNotEmpty()) {
+                    val cm = this@MainActivity.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText("Galleria", link))
+                    flashGal("Link copiato")
+                }
+            }
+        }
+        galCard.addView(galCopyBtn, lp(match, wrap, top = 8))
+        right.addView(galCard, lp(match, wrap, top = 12))
+        renderGallery()
+
         // scheda SCHERMO
         screenCard = card("SCHERMO")
         screenCard.addView(
@@ -414,6 +458,96 @@ class MainActivity : AppCompatActivity() {
         driveAutoBtn.visibility = vis
         driveWifiBtn.visibility = vis
         driveNowBtn.visibility = vis
+    }
+
+    /** Messaggio breve nella scheda galleria: sparisce da solo dopo qualche secondo. */
+    private fun flashGal(msg: String) {
+        galMsg = msg
+        renderGallery()
+        ui.postDelayed({ if (galMsg == msg) { galMsg = ""; renderGallery() } }, 6000)
+    }
+
+    private fun renderGallery() {
+        if (!::galText.isInitialized) return
+        val g = gal
+        val on = galClient.configured
+        val lines = ArrayList<String>()
+        if (!on) {
+            lines.add("Non impostata. Inserisci indirizzo e chiave: le dediche andranno online e gli ospiti le vedono con un link.")
+        } else if (g == null) {
+            lines.add("Impostata.")
+        } else {
+            val queued = g.queuedCount()
+            lines.add(
+                when {
+                    g.current.isNotEmpty() -> "Carico ${g.current}  ${g.pct}%" + if (queued > 1) "  ·  in coda ${queued - 1}" else ""
+                    queued > 0 -> "In coda: $queued"
+                    else -> "✓ Tutto online (${g.doneCount()})"
+                }
+            )
+            if (g.lastError.isNotEmpty()) lines.add("⚠ " + g.lastError)
+        }
+        if (galClient.lastLink.isNotEmpty()) lines.add(galClient.lastLink)
+        if (galMsg.isNotEmpty()) lines.add(galMsg)
+        galText.text = lines.joinToString("\n")
+        galSetBtn.text = if (on) "Cambia indirizzo o chiave" else "Imposta indirizzo e chiave"
+        galSetBtn.background = roundBg(if (on) cChip else cBlue, 24)
+        val auto = g?.auto ?: true
+        val wifi = g?.wifiOnly ?: false
+        galAutoBtn.text = if (auto) "Caricamento automatico: acceso" else "Caricamento automatico: spento"
+        galAutoBtn.background = roundBg(if (auto) 0xFF2E7D32.toInt() else cChip, 24)
+        galWifiBtn.text = if (wifi) "Solo con Wi-Fi: acceso" else "Solo con Wi-Fi: spento (usa anche i dati)"
+        galWifiBtn.background = roundBg(if (wifi) 0xFF2E7D32.toInt() else cChip, 24)
+        val vis = if (on) View.VISIBLE else View.GONE
+        galAutoBtn.visibility = vis
+        galWifiBtn.visibility = vis
+        galNowBtn.visibility = vis
+        galCopyBtn.visibility = if (on && galClient.lastLink.isNotEmpty()) View.VISIBLE else View.GONE
+    }
+
+    /** Finestra per scrivere l'indirizzo del sito e la chiave; poi prova subito il collegamento. */
+    private fun onGallerySet() {
+        val box = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(8), dp(20), 0)
+        }
+        val urlIn = EditText(this).apply {
+            setText(galClient.baseUrl)
+            hint = "Indirizzo (https://…)"
+            setSingleLine(true)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+        }
+        val keyIn = EditText(this).apply {
+            setText(galClient.token)
+            hint = "Chiave"
+            setSingleLine(true)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+        }
+        box.addView(urlIn, LinearLayout.LayoutParams(-1, -2))
+        box.addView(keyIn, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Galleria web")
+            .setView(box)
+            .setPositiveButton("Salva") { _, _ ->
+                galClient.baseUrl = urlIn.text.toString()
+                galClient.token = keyIn.text.toString()
+                galMsg = "Controllo il collegamento…"
+                renderGallery()
+                Thread {
+                    val r = runCatching { galClient.ping() }
+                    runOnUiThread {
+                        if (r.isSuccess) {
+                            flashGal("✓ Collegata")
+                            gal?.kick()
+                        } else {
+                            galMsg = "⚠ Collegamento non riuscito: " + (r.exceptionOrNull()?.message ?: "errore")
+                            renderGallery()
+                        }
+                    }
+                }.start()
+            }
+            .setNegativeButton("Annulla", null)
+            .show()
     }
 
     private fun renderSec() {
@@ -570,6 +704,8 @@ class MainActivity : AppCompatActivity() {
     private fun boot() {
         val up = DriveUploader(this, driveClient, { n -> camera?.historyFile(n) }, { runOnUiThread { renderDrive() } })
         drive = up
+        val gup = GalleryUploader(this, galClient, { n -> camera?.historyFile(n) }, { n -> camera?.thumbForName(n) }, { runOnUiThread { renderGallery() } })
+        gal = gup
         val srv = StreamServer(
             takeFile = { name -> camera?.takeFile(name) },
             onCommand = { cmd -> runOnUiThread { handle(cmd) } },
@@ -596,7 +732,10 @@ class MainActivity : AppCompatActivity() {
             onEvent = { e ->
                 srv.sendEvent(e)
                 if (e.startsWith("SAVED:")) {
-                    runOnUiThread { if (up.auto && driveClient.connected) up.enqueue(listOf(e.removePrefix("SAVED:"))) }
+                    runOnUiThread {
+                        if (up.auto && driveClient.connected) up.enqueue(listOf(e.removePrefix("SAVED:")))
+                        if (gup.auto && galClient.configured) gup.enqueue(listOf(e.removePrefix("SAVED:")))
+                    }
                 }
             },
             onLevel = srv::sendLevel,
@@ -623,6 +762,7 @@ class MainActivity : AppCompatActivity() {
         cam.start()
         nsd = NsdAdvertiser(this).also { it.register(StreamServer.PORT) }
         up.start()
+        gup.start()
         CameraService.start(this)
         askBatteryExemption()
         booted = true

@@ -276,6 +276,10 @@ class CameraController(
 
     fun thumbFile(name: String): File? = File(thumbsDir, File(name).name).takeIf { it.isFile }
 
+    /** Miniatura di una dedica a partire dal nome del file (video o foto). */
+    fun thumbForName(name: String): File? =
+        File(thumbsDir, File(name).name.substringBeforeLast('.') + ".jpg").takeIf { it.isFile }
+
     /** Elenco JSON dei salvati, dal più recente. */
     fun historyJson(): String {
         val arr = JSONArray()

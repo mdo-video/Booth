@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "event": {
+    "code": "demo",
+    "title": "Serata di prova",
+    "subtitle": "Le dediche del booth",
+    "date": "2026-10-24",
+    "expires": "2027-01-22"
+  },
+  "base": "",
+  "items": [
+    {
+      "id": "d009",
+      "type": "video",
+      "name": "Dedica 009",
+      "time": "2026-10-24T22:41:00+02:00",
+      "w": 360,
+      "h": 640,
+      "src": "media/d009.mp4",
+      "thumb": "thumbs/d009.jpg",
+      "size": 48795,
+      "duration": 4
+    },
+    {
+      "id": "d008",
+      "type": "photo",
+      "name": "Foto 008",
+      "time": "2026-10-24T22:26:00+02:00",
+      "w": 1280,
+      "h": 720,
+      "src": "media/d008.jpg",
+      "thumb": "thumbs/d008.jpg",
+      "size": 23691
+    },
+    {
+      "id": "d007",
+      "type": "video",
+      "name": "Dedica 007",
+      "time": "2026-10-24T22:12:00+02:00",
+      "w": 640,
+      "h": 360,
+      "src": "media/d007.mp4",
+      "thumb": "thumbs/d007.jpg",
+      "size": 47578,
+      "duration": 4
+    },
+    {
+      "id": "d006",
+      "type": "photo",
+      "name": "Foto 006",
+      "time": "2026-10-24T21:58:00+02:00",
+      "w": 720,
+      "h": 1280,
+      "src": "media/d006.jpg",
+      "thumb": "thumbs/d006.jpg",
+      "size": 25087
+    },
+    {
+      "id": "d005",
+      "type": "photo",
+      "name": "Foto 005",
+      "time": "2026-10-24T21:47:00+02:00",
+      "w": 1280,
+      "h": 720,
+      "src": "media/d005.jpg",
+      "thumb": "thumbs/d005.jpg",
+      "size": 21613
+    },
+    {
+      "id": "d004",
+      "type": "video",
+      "name": "Dedica 004",
+      "time": "2026-10-24T21:30:00+02:00",
+      "w": 640,
+      "h": 360,
+      "src": "media/d004.mp4",
+      "thumb": "thumbs/d004.jpg",
+      "size": 49341,
+      "duration": 4
+    },
+    {
+      "id": "d003",
+      "type": "photo",
+      "name": "Foto 003",
+      "time": "2026-10-24T21:15:00+02:00",
+      "w": 1280,
+      "h": 720,
+      "src": "media/d003.jpg",
+      "thumb": "thumbs/d003.jpg",
+      "size": 22448
+    },
+    {
+      "id": "d002",
+      "type": "video",
+      "name": "Dedica 002",
+      "time": "2026-10-24T20:52:00+02:00",
+      "w": 360,
+      "h": 640,
+      "src": "media/d002.mp4",
+      "thumb": "thumbs/d002.jpg",
+      "size": 50678,
+      "duration": 4
+    },
+    {
+      "id": "d001",
+      "type": "photo",
+      "name": "Foto 001",
+      "time": "2026-10-24T20:40:00+02:00",
+      "w": 720,
+      "h": 1280,
+      "src": "media/d001.jpg",
+      "thumb": "thumbs/d001.jpg",
+      "size": 21487
+    }
+  ]
+}

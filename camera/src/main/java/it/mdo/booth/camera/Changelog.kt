@@ -21,6 +21,11 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(69, "1.64", "Galleria web per gli ospiti", listOf(
+            "Ogni dedica salvata va online da sola, in una galleria con link: gli ospiti la vedono e la scaricano dal telefono",
+            "Nuova scheda GALLERIA WEB: imposti indirizzo e chiave una volta sola, poi copi il link da mandare agli ospiti",
+            "Se manca internet le dediche restano in coda e partono appena torna la rete",
+        )),
         Entry(67, "1.62", "Anteprime verticali e orientamento automatico", listOf(
             "Orientamento video: nuova voce Automatico, si adatta a come tieni il telefono (si riaggancia da solo se lo ruoti, mai durante una registrazione)",
             "Le miniature dei video verticali escono sempre in verticale",
