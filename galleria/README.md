@@ -5,3 +5,4 @@
 - `wrangler.jsonc`  nome Worker `mdo-booth`, bucket R2 `booth-media`
 
 Segreto da impostare sul Worker: `UPLOAD_TOKEN` (la stessa chiave si scrive nell'app camera).
+
