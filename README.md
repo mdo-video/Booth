@@ -144,3 +144,10 @@ Cartella `galleria/` = il sito su Cloudflare (Worker `mdo-booth` + spazio R2 `bo
 - Il telefono camera carica ogni dedica salvata (scheda **GALLERIA WEB**): file + miniatura in R2, poi la voce in `manifest.json`.
 - Le chiamate di scrittura (`/api/*`) vogliono la chiave segreta `UPLOAD_TOKEN` impostata sul Worker; la stessa chiave si scrive nell'app camera.
 - Evento = parte del nome file prima dell'ultimo `_`; resta online 90 giorni (data scritta nell'elenco).
+
+## Novità 1.65 — tablet compatibile con Android 8
+- Modulo `tablet`: `minSdk` abbassato da 29 a 26 (Android 8.0). Camera e Controllo restano a `minSdk` 29.
+- Nessuna funzione tolta: il codice già controllava la versione di Android dove serviva.
+  Differenze su Android 8-10: la dashcam registra solo con la frontale (le fotocamere concorrenti `getConcurrentCameraIds` esistono da Android 11),
+  i tipi di servizio in primo piano (camera/microfono) vengono ignorati dal sistema, il permesso notifiche non viene chiesto (serve da Android 13).
+- Resta un solo APK `booth-tablet.apk`: l'aggiornamento automatico non cambia.

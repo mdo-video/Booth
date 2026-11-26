@@ -21,6 +21,10 @@ object Changelog {
 
     // dal più recente al più vecchio; code = appVersionCode
     private val entries = listOf(
+        Entry(70, "1.65", "Compatibile con Android 8", listOf(
+            "Il tablet ora si installa anche su Android 8 e 9 (prima serviva Android 10)",
+            "Su Android 8-10 la dashcam registra con la sola fotocamera frontale: la posteriore insieme alla frontale richiede Android 11 o più recente",
+        )),
         Entry(68, "1.63", "Telecomando dall'app Controllo", listOf(
             "Il tablet accetta i gesti del telecomando anche dall'app Controllo (nuova scheda Telecomando): stesse azioni del telecomando fisico",
         )),

@@ -8,7 +8,7 @@ android {
     compileSdk = 34
     defaultConfig {
         applicationId = "it.mdo.booth.tablet"
-        minSdk = 29
+        minSdk = 26
         targetSdk = 34
         versionCode = (project.findProperty("appVersionCode") as String).toInt()
         versionName = project.findProperty("appVersionName") as String
